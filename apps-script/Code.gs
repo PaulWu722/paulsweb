@@ -1,24 +1,25 @@
 /**
  * 年終愛筵報名 — Google Apps Script 後端
- * 資料存放在綁定的 Google 試算表：
- *   「報名名單」工作表：所有報名資料與桌號
- *   「桌長」工作表：桌號與桌長姓名（直接在試算表修改即可）
+ * 資料存放在 Google 試算表「17會所事務」的「年終愛筵桌次表與報名」工作表：
+ *   A–I 欄：報名名單（編號、報名時間、姓名、性別、身分、小區、備註、桌號、修改碼）
+ *   K–L 欄：桌號與桌長姓名（直接在試算表修改即可，網站會自動更新）
  */
 
+const SPREADSHEET_ID = '19cI8tOZLBeKKlzyn8H08o2yvSbS8IuQntcP-nxjiBVI';
+const SHEET_NAME = '年終愛筵桌次表與報名';
 const CAPACITY = 10;        // 每桌人數上限
-const TABLE_COUNT = 20;     // 第一次建立「桌長」工作表時的桌數
-const SHEET_REG = '報名名單';
-const SHEET_TABLES = '桌長';
+const TABLE_COUNT = 20;     // 第一次建立桌長欄位時的桌數
 const HEADERS = ['編號', '報名時間', '姓名', '性別', '身分', '小區', '備註', '桌號', '修改碼'];
+const REG_COLS = HEADERS.length; // A–I
+const TABLE_COL = 11;            // K 欄
 
 const GENDERS = ['男', '女'];
 const ROLES = ['聖徒', '福音朋友'];
 const AREAS = ['霧峰', '朝陽', '其他'];
 
-/** 第一次使用時手動執行一次，建立工作表 */
+/** 第一次使用時手動執行一次，確認權限並建立表頭 */
 function setup() {
-  regSheet_();
-  tablesSheet_();
+  sheet_();
 }
 
 function doGet() {
@@ -48,53 +49,50 @@ function doPost(e) {
 }
 
 // ---------- 工作表 ----------
-function regSheet_() {
-  const ss = SpreadsheetApp.getActive();
-  let sh = ss.getSheetByName(SHEET_REG);
-  if (!sh) {
-    sh = ss.insertSheet(SHEET_REG);
-    sh.appendRow(HEADERS);
-    sh.setFrozenRows(1);
-    sh.getRange('A:A').setNumberFormat('@');
-    sh.getRange('I:I').setNumberFormat('@');
+let sheetCache_ = null;
+function sheet_() {
+  if (sheetCache_) return sheetCache_;
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sh = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+  if (!sh.getRange('A1').getValue()) {
+    sh.getRange(1, 1, 1, REG_COLS).setValues([HEADERS]);
   }
+  if (!sh.getRange(1, TABLE_COL).getValue()) {
+    const rows = [['桌號', '桌長']];
+    for (let i = 1; i <= TABLE_COUNT; i++) rows.push([i, '桌長' + i]);
+    sh.getRange(1, TABLE_COL, rows.length, 2).setValues(rows);
+  }
+  sheetCache_ = sh;
   return sh;
 }
 
-function tablesSheet_() {
-  const ss = SpreadsheetApp.getActive();
-  let sh = ss.getSheetByName(SHEET_TABLES);
-  if (!sh) {
-    sh = ss.insertSheet(SHEET_TABLES);
-    const rows = [['桌號', '桌長']];
-    for (let i = 1; i <= TABLE_COUNT; i++) rows.push([i, '桌長' + i]);
-    sh.getRange(1, 1, rows.length, 2).setValues(rows);
-    sh.setFrozenRows(1);
-  }
-  return sh;
+function dataRows_(col, width) {
+  const sh = sheet_();
+  const last = sh.getLastRow();
+  if (last < 2) return [];
+  return sh.getRange(2, col, last - 1, width).getValues();
 }
 
 function readTables_() {
-  const values = tablesSheet_().getDataRange().getValues().slice(1);
-  return values
+  return dataRows_(TABLE_COL, 2)
     .filter((r) => r[0] !== '')
     .map((r) => ({ no: Number(r[0]), captain: String(r[1] || '') }));
 }
 
 function readPeople_() {
-  const sh = regSheet_();
-  const values = sh.getDataRange().getValues().slice(1);
-  return values.map((r, i) => ({
-    row: i + 2,
-    id: String(r[0]),
-    name: String(r[2]),
-    gender: String(r[3]),
-    role: String(r[4]),
-    area: String(r[5]),
-    note: String(r[6]),
-    table: Number(r[7]) || 0,
-    code: String(r[8]),
-  }));
+  return dataRows_(1, REG_COLS)
+    .map((r, i) => ({
+      row: i + 2,
+      id: String(r[0]),
+      name: String(r[2]),
+      gender: String(r[3]),
+      role: String(r[4]),
+      area: String(r[5]),
+      note: String(r[6]),
+      table: Number(r[7]) || 0,
+      code: String(r[8]),
+    }))
+    .filter((p) => p.id !== '');
 }
 
 // ---------- 動作 ----------
@@ -125,7 +123,11 @@ function register_(d) {
 
   const id = Utilities.getUuid().replace(/-/g, '').slice(0, 10);
   const code = String(1000 + Math.floor(Math.random() * 9000));
-  regSheet_().appendRow([id, new Date(), safe_(name), d.gender, d.role, safe_(area), safe_(note), '', code]);
+  const people = readPeople_();
+  const row = people.length ? Math.max.apply(null, people.map((p) => p.row)) + 1 : 2;
+  const range = sheet_().getRange(row, 1, 1, REG_COLS);
+  range.setNumberFormats([['@', 'yyyy/mm/dd hh:mm', '@', '@', '@', '@', '@', '0', '@']]);
+  range.setValues([[id, new Date(), safe_(name), d.gender, d.role, safe_(area), safe_(note), '', code]]);
   return { me: { id, code, name, gender: d.gender, role: d.role, area, note, table: 0 } };
 }
 
@@ -153,7 +155,7 @@ function seat_(id, code, table) {
     const count = people.filter((x) => x.table === table && x.id !== me.id).length;
     if (count >= CAPACITY) throw new Error('這桌已經滿了，請選擇其他桌');
   }
-  regSheet_().getRange(me.row, 8).setValue(table || '');
+  sheet_().getRange(me.row, 8).setValue(table || '');
   me.table = table;
   return { me: public_(me), ...state_() };
 }
