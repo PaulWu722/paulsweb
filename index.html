@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paul Wu｜個人網站</title>
+  <meta name="description" content="Paul Wu 的個人網站：關於我、服務項目、作品與聯絡方式。">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav container">
+      <a href="#top" class="logo">Paul Wu</a>
+      <button class="nav-toggle" aria-label="開啟選單" aria-expanded="false">☰</button>
+      <ul class="nav-links">
+        <li><a href="#about">關於我</a></li>
+        <li><a href="#services">服務</a></li>
+        <li><a href="#works">作品</a></li>
+        <li><a href="#contact">聯絡</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="top">
+    <!-- 首頁主視覺 -->
+    <section class="hero">
+      <div class="container hero-inner">
+        <p class="eyebrow">你好，我是</p>
+        <h1>Paul Wu</h1>
+        <p class="tagline">用心服務每一位客戶，陪你把想法變成成果。</p>
+        <div class="hero-actions">
+          <a href="#contact" class="btn btn-primary">與我聯絡</a>
+          <a href="#about" class="btn btn-ghost">認識我</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 關於我 -->
+    <section id="about" class="section">
+      <div class="container about">
+        <div class="avatar" aria-hidden="true">P</div>
+        <div>
+          <h2>關於我</h2>
+          <p>
+            這裡可以寫你的自我介紹：你的背景、專長、做事的理念，以及你希望帶給別人什麼價值。
+            用兩三段簡短的文字，讓訪客快速認識你。
+          </p>
+          <ul class="facts">
+            <li><strong>所在地</strong>台灣</li>
+            <li><strong>專長</strong>客戶服務、溝通協調</li>
+            <li><strong>興趣</strong>閱讀、學習新事物</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 服務 -->
+    <section id="services" class="section section-alt">
+      <div class="container">
+        <h2>我能為你做什麼</h2>
+        <div class="cards">
+          <article class="card">
+            <div class="card-icon">💬</div>
+            <h3>諮詢服務</h3>
+            <p>了解你的需求，提供專業、客觀的建議。</p>
+          </article>
+          <article class="card">
+            <div class="card-icon">🤝</div>
+            <h3>長期陪伴</h3>
+            <p>定期回訪與追蹤，確保每一步都走得安心。</p>
+          </article>
+          <article class="card">
+            <div class="card-icon">📋</div>
+            <h3>規劃安排</h3>
+            <p>量身打造適合你的方案，清楚說明每個細節。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 作品／案例 -->
+    <section id="works" class="section">
+      <div class="container">
+        <h2>作品與案例</h2>
+        <div class="works">
+          <article class="work">
+            <div class="work-thumb" style="--hue: 210"></div>
+            <h3>案例一</h3>
+            <p>簡短描述這個案例的背景與成果。</p>
+          </article>
+          <article class="work">
+            <div class="work-thumb" style="--hue: 160"></div>
+            <h3>案例二</h3>
+            <p>簡短描述這個案例的背景與成果。</p>
+          </article>
+          <article class="work">
+            <div class="work-thumb" style="--hue: 30"></div>
+            <h3>案例三</h3>
+            <p>簡短描述這個案例的背景與成果。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 聯絡 -->
+    <section id="contact" class="section section-alt">
+      <div class="container contact">
+        <div>
+          <h2>與我聯絡</h2>
+          <p>有任何問題或合作想法，歡迎留言給我，我會盡快回覆。</p>
+          <ul class="contact-list">
+            <li>📧 <a href="mailto:you@example.com">you@example.com</a></li>
+            <li>💬 LINE ID：your-line-id</li>
+          </ul>
+        </div>
+        <form class="contact-form" id="contact-form">
+          <label>姓名<input type="text" name="name" required></label>
+          <label>Email<input type="email" name="email" required></label>
+          <label>留言<textarea name="message" rows="4" required></textarea></label>
+          <button type="submit" class="btn btn-primary">送出</button>
+          <p class="form-status" role="status"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© <span id="year"></span> Paul Wu. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
