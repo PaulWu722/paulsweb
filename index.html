@@ -32,6 +32,7 @@
         <h1>年終愛筵報名</h1>
         <p class="tagline">一年的恩典，一起在桌前感恩、相調、彼此祝福。</p>
         <ul class="event-info" id="event-info"></ul>
+        <p class="event-address" id="event-address"></p>
         <div class="hero-actions">
           <a href="#register" class="btn btn-primary">立即報名</a>
           <a href="#tables" class="btn btn-ghost">查看座位</a>
@@ -46,33 +47,15 @@
         <div class="section-head">
           <span class="step">STEP 1</span>
           <h2>填寫報名表</h2>
-          <p>報名完成後，就可以在下方選擇想坐的桌子。</p>
+          <p>可以一次幫家人一起報名，選桌時全家會坐在同一桌。</p>
         </div>
 
         <form class="card form" id="register-form" novalidate>
-          <label class="field">
-            <span>姓名 <em>*</em></span>
-            <input type="text" name="name" maxlength="30" required autocomplete="name" placeholder="請輸入姓名">
-          </label>
+          <div id="people"></div>
+          <button type="button" class="btn btn-dashed" id="add-person">＋ 新增家人</button>
 
           <fieldset class="field">
-            <legend>性別 <em>*</em></legend>
-            <div class="chips">
-              <label class="chip"><input type="radio" name="gender" value="男" required><span>男</span></label>
-              <label class="chip"><input type="radio" name="gender" value="女"><span>女</span></label>
-            </div>
-          </fieldset>
-
-          <fieldset class="field">
-            <legend>身分 <em>*</em></legend>
-            <div class="chips">
-              <label class="chip"><input type="radio" name="role" value="聖徒" required><span>聖徒</span></label>
-              <label class="chip"><input type="radio" name="role" value="福音朋友"><span>福音朋友</span></label>
-            </div>
-          </fieldset>
-
-          <fieldset class="field">
-            <legend>小區 <em>*</em></legend>
+            <legend>小區 <em>*</em> <small>（全家共用）</small></legend>
             <div class="chips">
               <label class="chip"><input type="radio" name="area" value="霧峰" required><span>霧峰</span></label>
               <label class="chip"><input type="radio" name="area" value="朝陽"><span>朝陽</span></label>
@@ -92,13 +75,14 @@
 
         <div class="card success" id="register-success" hidden>
           <div class="success-icon">🎉</div>
-          <h3><span id="success-name"></span>，報名成功！</h3>
+          <h3>報名成功！</h3>
+          <p class="success-names" id="success-names"></p>
           <p>你的修改碼是</p>
           <p class="code" id="success-code"></p>
-          <p class="hint">請記下這組數字。換手機或電腦時，可以用「姓名＋修改碼」登入並更換桌次。</p>
+          <p class="hint">請記下這組數字。換手機或電腦時，用「任一位家人的姓名＋修改碼」就能登入並更換桌次。</p>
           <div class="success-actions">
             <a href="#tables" class="btn btn-primary">前往選桌</a>
-            <button type="button" class="btn btn-ghost" id="register-another">幫其他人報名</button>
+            <button type="button" class="btn btn-ghost" id="register-another">再報名另一組</button>
           </div>
         </div>
       </div>
@@ -110,12 +94,13 @@
         <div class="section-head">
           <span class="step">STEP 2</span>
           <h2>選擇你的座位</h2>
-          <p>點選桌子可以看到目前坐在那桌的人，每桌最多 <strong id="capacity-text">10</strong> 位。</p>
+          <p>點選桌子可以看到目前坐在那桌的人，每桌最多 <strong id="capacity-text">10</strong> 位（含桌長）。</p>
         </div>
 
         <div class="my-status card" id="my-status"></div>
 
         <div class="legend">
+          <span><i class="dot dot-captain"></i>桌長</span>
           <span><i class="dot dot-taken"></i>已入座</span>
           <span><i class="dot dot-empty"></i>空位</span>
           <span><i class="dot dot-mine"></i>我的座位</span>
@@ -143,7 +128,7 @@
     <form method="dialog"><button class="modal-close" aria-label="關閉">×</button></form>
     <h3>已報名？登入以更換桌次</h3>
     <form class="form" id="login-form">
-      <label class="field"><span>姓名</span><input type="text" name="name" required></label>
+      <label class="field"><span>姓名（任一位家人皆可）</span><input type="text" name="name" required></label>
       <label class="field"><span>修改碼</span><input type="text" name="code" inputmode="numeric" maxlength="4" required></label>
       <p class="form-error" id="login-error" role="alert"></p>
       <button type="submit" class="btn btn-primary btn-block">登入</button>

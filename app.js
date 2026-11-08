@@ -7,8 +7,14 @@
   const esc = (s) =>
     String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+  const GENDERS = ['男', '女'];
+  const ROLES = ['聖徒', '福音朋友'];
+  const AREAS = ['霧峰', '朝陽', '其他'];
+  const MAX_FAMILY = 10;
+
   let state = { capacity: 10, tables: [] };
-  let me = null; // 目前登入的報名者 {id, code, name, gender, role, area, note, table}
+  // 目前登入的家庭 {id, code, table, members:[{name, gender, role, area}]}
+  let me = null;
 
   // ================= 後端：Google Apps Script =================
   async function remoteCall(action, payload = {}) {
@@ -23,79 +29,85 @@
     return json;
   }
 
-  // ================= 示範模式：用 localStorage 模擬後端 =================
-  const DEMO_KEY = 'aiyan-demo-db';
+  // ================= 示範模式：用 localStorage 模擬後端（邏輯同 Code.gs） =================
+  const DEMO_KEY = 'aiyan-demo-db-v2';
   const DEMO_CAPACITY = 10;
-  const AREAS = ['霧峰', '朝陽', '其他'];
-  const GENDERS = ['男', '女'];
-  const ROLES = ['聖徒', '福音朋友'];
 
   function demoSeed() {
-    const names = '陳恩典 林喜樂 王平安 張信望 李以馬內利 黃榮光 吳憐恤 劉約書亞 蔡路得 楊撒母耳 許馬利亞 鄭提摩太 謝百基拉 郭亞居拉 洪多加 邱巴拿巴 曾以斯帖 廖迦勒 賴拿俄米 周約瑟'.split(' ');
-    const seats = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 5, 5, 5, 8];
+    const names = '陳恩典 林喜樂 王平安 張信望 李以馬內利 黃榮光 吳憐恤 劉約書亞 蔡路得 楊撒母耳 許馬利亞 鄭提摩太 謝百基拉 郭亞居拉 洪多加 邱巴拿巴 曾以斯帖 周約瑟'.split(' ');
+    const seats = [1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 5, 5, 5, 8];
     return {
       tables: Array.from({ length: 20 }, (_, i) => ({ no: i + 1, captain: `桌長${i + 1}` })),
       people: names.map((name, i) => ({
-        id: 'demo' + i, code: String(1000 + i), name,
-        gender: GENDERS[i % 2], role: ROLES[i % 3 === 0 ? 1 : 0], area: AREAS[i % 3], note: '', table: seats[i],
+        id: 'demo' + i, group: 'demo' + i, code: String(1000 + i), name,
+        gender: GENDERS[i % 2], role: ROLES[i % 3 === 0 ? 1 : 0], area: AREAS[i % 3], table: seats[i],
       })),
     };
   }
 
-  function cleanRegistration(d = {}) {
-    const name = String(d.name || '').trim();
-    if (!name) throw new Error('請填寫姓名');
-    if (!GENDERS.includes(d.gender)) throw new Error('請選擇性別');
-    if (!ROLES.includes(d.role)) throw new Error('請選擇身分');
-    if (!AREAS.includes(d.area)) throw new Error('請選擇小區');
-    const other = String(d.areaOther || '').trim();
-    return {
-      name: name.slice(0, 30), gender: d.gender, role: d.role,
-      area: d.area === '其他' && other ? `其他（${other.slice(0, 20)}）` : d.area,
-      note: String(d.note || '').trim().slice(0, 200),
-    };
-  }
+  const occupied = (t, people) => people.filter((p) => p.name !== t.captain).length + (t.captain ? 1 : 0);
 
   async function demoCall(action, p = {}) {
     const db = JSON.parse(localStorage.getItem(DEMO_KEY) || 'null') || demoSeed();
-    const find = () => {
-      const x = db.people.find((q) => q.id === p.id && q.code === String(p.code));
-      if (!x) throw new Error('找不到報名資料，請重新登入');
-      return x;
+    const party = (group, code) => {
+      const ms = db.people.filter((x) => x.group === String(group) && x.code === String(code));
+      if (!ms.length) throw new Error('找不到報名資料，請重新登入');
+      return { id: group, code, table: ms[0].table, members: ms.map(({ name, gender, role, area }) => ({ name, gender, role, area })) };
     };
     const stateOf = () => ({
       capacity: DEMO_CAPACITY,
-      tables: db.tables.map((t) => ({
-        ...t,
-        members: db.people.filter((q) => q.table === t.no).map((q) => ({ name: q.name, area: q.area, role: q.role })),
-      })),
+      tables: db.tables.map((t) => {
+        const at = db.people.filter((q) => q.table === t.no);
+        return { ...t, count: occupied(t, at), members: at.map((q) => ({ name: q.name, area: q.area, role: q.role })) };
+      }),
     });
     let res;
     switch (action) {
       case 'state': res = stateOf(); break;
       case 'register': {
-        const person = { ...cleanRegistration(p.data), id: Math.random().toString(36).slice(2, 10), code: String(1000 + Math.floor(Math.random() * 9000)), table: 0 };
-        db.people.push(person);
-        res = { me: person };
+        const d = p.data || {};
+        const list = d.members || [];
+        if (!list.length) throw new Error('請至少填寫一位報名者');
+        list.forEach((m, i) => {
+          const who = list.length > 1 ? `第 ${i + 1} 位` : '';
+          if (!String(m.name || '').trim()) throw new Error(`請填寫${who}姓名`);
+          if (!GENDERS.includes(m.gender)) throw new Error(`請選擇${who || m.name}的性別`);
+          if (!ROLES.includes(m.role)) throw new Error(`請選擇${who || m.name}的身分`);
+        });
+        if (!AREAS.includes(d.area)) throw new Error('請選擇小區');
+        const other = String(d.areaOther || '').trim();
+        const area = d.area === '其他' && other ? `其他（${other}）` : d.area;
+        const group = Math.random().toString(36).slice(2, 12);
+        const code = String(1000 + Math.floor(Math.random() * 9000));
+        list.forEach((m, i) => db.people.push({
+          id: i ? Math.random().toString(36).slice(2, 12) : group, group, code,
+          name: m.name.trim(), gender: m.gender, role: m.role, area, note: i ? '' : d.note, table: 0,
+        }));
+        res = { me: party(group, code) };
         break;
       }
       case 'login': {
         const x = db.people.find((q) => q.name === String(p.name).trim() && q.code === String(p.code).trim());
         if (!x) throw new Error('姓名或修改碼不正確');
-        res = { me: x };
+        res = { me: party(x.group, x.code) };
         break;
       }
-      case 'me': res = { me: find() }; break;
+      case 'me': res = { me: party(p.id, p.code) }; break;
       case 'seat': {
-        const x = find();
+        const mine = db.people.filter((x) => x.group === String(p.id) && x.code === String(p.code));
+        if (!mine.length) throw new Error('找不到報名資料，請重新登入');
         const t = Number(p.table);
         if (t !== 0) {
-          if (!db.tables.some((tb) => tb.no === t)) throw new Error('桌號不正確');
-          const n = db.people.filter((q) => q.table === t && q.id !== x.id).length;
-          if (n >= DEMO_CAPACITY) throw new Error('這桌已經滿了，請選擇其他桌');
+          const tb = db.tables.find((x) => x.no === t);
+          if (!tb) throw new Error('桌號不正確');
+          const others = db.people.filter((x) => x.table === t && x.group !== String(p.id));
+          if (occupied(tb, others.concat(mine)) > DEMO_CAPACITY) {
+            const left = Math.max(0, DEMO_CAPACITY - occupied(tb, others));
+            throw new Error(left ? `這桌只剩 ${left} 個位子，不夠 ${mine.length} 位入座` : '這桌已經滿了，請選擇其他桌');
+          }
         }
-        x.table = t;
-        res = { me: x, ...stateOf() };
+        mine.forEach((x) => { x.table = t; });
+        res = { me: party(p.id, p.code), ...stateOf() };
         break;
       }
       default: throw new Error('未知的操作');
@@ -115,12 +127,12 @@
     el.classList.toggle('error', isError);
     el.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
   }
 
-  function setMe(person) {
-    me = person;
-    if (person) localStorage.setItem(ME_KEY, JSON.stringify({ id: person.id, code: person.code }));
+  function setMe(party) {
+    me = party;
+    if (party) localStorage.setItem(ME_KEY, JSON.stringify({ id: party.id, code: party.code }));
     else localStorage.removeItem(ME_KEY);
   }
 
@@ -129,15 +141,21 @@
   }
 
   const tableByNo = (no) => state.tables.find((t) => t.no === no);
+  const partySize = () => (me ? me.members.length : 0);
+  const partyNames = () => (me ? me.members.map((m) => m.name).join('、') : '');
 
   // ================= 畫面：桌子 =================
-  function tableSvg(count, capacity, mine) {
+  function tableSvg(t, mine) {
+    const cap = state.capacity;
     const cx = 80, cy = 80, r = 64;
+    const myCount = mine ? partySize() : 0;
     let chairs = '';
-    for (let i = 0; i < capacity; i++) {
-      const a = (i / capacity) * Math.PI * 2 - Math.PI / 2;
+    for (let i = 0; i < cap; i++) {
+      const a = (i / cap) * Math.PI * 2 - Math.PI / 2;
       const x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);
-      const cls = i < count ? (mine && i === count - 1 ? 'chair mine' : 'chair taken') : 'chair';
+      let cls = 'chair';
+      if (i === 0 && t.captain) cls = 'chair captain';
+      else if (i < t.count) cls = i >= t.count - myCount ? 'chair mine' : 'chair taken';
       chairs += `<circle class="${cls}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9"/>`;
     }
     return `<svg viewBox="0 0 160 160" aria-hidden="true">${chairs}<circle class="tabletop" cx="${cx}" cy="${cy}" r="46"/></svg>`;
@@ -146,22 +164,21 @@
   function renderTables() {
     $('#capacity-text').textContent = state.capacity;
     $('#table-grid').innerHTML = state.tables.map((t) => {
-      const n = t.members.length;
-      const full = n >= state.capacity;
+      const full = t.count >= state.capacity;
       const mine = !!me && me.table === t.no;
-      const status = full ? '已滿' : `${n} / ${state.capacity} 人`;
+      const status = full ? '已滿' : `${t.count} / ${state.capacity} 人`;
       return `
         <button type="button" class="table-card${full ? ' is-full' : ''}${mine ? ' is-mine' : ''}" data-no="${t.no}"
           aria-label="第 ${t.no} 桌，桌長 ${esc(t.captain)}，${status}">
           <div class="table-visual">
-            ${tableSvg(n, state.capacity, mine)}
+            ${tableSvg(t, mine)}
             <div class="table-label">
               <span class="table-no">第 ${t.no} 桌</span>
               <span class="captain">${esc(t.captain)}</span>
             </div>
           </div>
           <div class="table-meta">
-            ${full ? '<span class="badge badge-full">已滿</span>' : `<span class="badge">${n} / ${state.capacity}</span>`}
+            ${full ? '<span class="badge badge-full">已滿</span>' : `<span class="badge">${t.count} / ${state.capacity}</span>`}
             ${mine ? '<span class="badge badge-mine">我的座位</span>' : ''}
           </div>
         </button>`;
@@ -180,11 +197,12 @@
       return;
     }
     const t = me.table ? tableByNo(me.table) : null;
+    const we = partySize() > 1 ? `你們 ${partySize()} 位` : '你';
     const where = t
-      ? `你目前坐在 <strong>第 ${t.no} 桌</strong>（桌長 ${esc(t.captain)}）。想換桌，點選其他桌子即可。`
-      : '你還沒有選桌，點選下方的桌子入座吧！';
+      ? `${we}目前坐在 <strong>第 ${t.no} 桌</strong>（桌長 ${esc(t.captain)}）。想換桌，點選其他桌子即可。`
+      : `${we}還沒有選桌，點選下方的桌子入座吧！`;
     el.innerHTML = `
-      <div class="status-text"><strong>👋 ${esc(me.name)}</strong>，${where}
+      <div class="status-text"><strong>👋 ${esc(partyNames())}</strong><br>${where}
         <span class="muted">修改碼：${esc(me.code)}</span></div>
       <div class="status-actions">
         <button type="button" class="btn btn-small btn-ghost" data-action="logout">切換身分</button>
@@ -202,16 +220,22 @@
   function renderModal() {
     const t = tableByNo(openTableNo);
     if (!t) return;
-    const n = t.members.length;
-    const full = n >= state.capacity;
+    const full = t.count >= state.capacity;
+    const left = state.capacity - t.count;
     const mineHere = !!me && me.table === t.no;
+    const myNames = new Set(mineHere ? me.members.map((m) => m.name) : []);
 
-    const list = n
-      ? `<ol class="member-list">${t.members.map((m) => `
-          <li><span class="avatar">${esc(m.name.slice(0, 1))}</span>
-            <span class="m-name">${esc(m.name)}</span>
-            <span class="m-tag">${esc(m.area)}</span></li>`).join('')}</ol>`
-      : '<p class="empty">還沒有人入座，成為第一位吧！</p>';
+    const rows = [];
+    if (t.captain) {
+      rows.push(`<li class="is-captain"><span class="avatar">${esc(t.captain.slice(0, 1))}</span>
+        <span class="m-name">${esc(t.captain)}</span><span class="m-tag tag-captain">桌長</span></li>`);
+    }
+    t.members.filter((m) => m.name !== t.captain).forEach((m) => {
+      const mine = myNames.has(m.name);
+      rows.push(`<li${mine ? ' class="is-me"' : ''}><span class="avatar">${esc(m.name.slice(0, 1))}</span>
+        <span class="m-name">${esc(m.name)}</span><span class="m-tag">${mine ? '我們' : esc(m.area)}</span></li>`);
+    });
+    const list = rows.length ? `<ol class="member-list">${rows.join('')}</ol>` : '<p class="empty">還沒有人入座。</p>';
 
     let action;
     if (!me) {
@@ -221,19 +245,23 @@
           <button type="button" class="btn btn-ghost" data-action="login">已報名？登入</button>
         </div>`;
     } else if (mineHere) {
-      action = `<p class="muted">你目前就坐在這桌 😊</p>
+      action = `<p class="muted">${partySize() > 1 ? '你們' : '你'}目前就坐在這桌 😊</p>
         <div class="modal-actions"><button type="button" class="btn btn-ghost" data-action="seat" data-table="0">離開這桌</button></div>`;
     } else if (full) {
       action = '<div class="modal-actions"><button type="button" class="btn btn-primary" disabled>已滿</button></div>';
+    } else if (left < partySize()) {
+      action = `<p class="muted">這桌只剩 ${left} 個位子，不夠你們 ${partySize()} 位一起入座。</p>
+        <div class="modal-actions"><button type="button" class="btn btn-primary" disabled>位子不夠</button></div>`;
     } else {
-      const label = me.table ? `換到這桌（目前在第 ${me.table} 桌）` : '我要坐這桌';
+      const who = partySize() > 1 ? `我們 ${partySize()} 位坐這桌` : '我要坐這桌';
+      const label = me.table ? `換到這桌（目前在第 ${me.table} 桌）` : who;
       action = `<div class="modal-actions"><button type="button" class="btn btn-primary" data-action="seat" data-table="${t.no}">${label}</button></div>`;
     }
 
     $('#table-modal-body').innerHTML = `
       <p class="modal-eyebrow">第 ${t.no} 桌</p>
-      <h3>桌長：${esc(t.captain)}</h3>
-      <p class="modal-count">${full ? '<span class="badge badge-full">已滿</span>' : `目前 ${n} / ${state.capacity} 人`}</p>
+      <h3>桌長：${esc(t.captain || '（未定）')}</h3>
+      <p class="modal-count">${full ? '<span class="badge badge-full">已滿</span>' : `目前 ${t.count} / ${state.capacity} 人，還有 ${left} 個位子`}</p>
       ${list}
       ${action}`;
   }
@@ -273,8 +301,63 @@
     }
   }
 
-  // 報名表
+  // ---------- 報名表：多位家人 ----------
   const form = $('#register-form');
+  const peopleEl = $('#people');
+  let personSeq = 0;
+
+  function chipGroup(name, values) {
+    return values.map((v) => `<label class="chip"><input type="radio" name="${name}" value="${v}"><span>${v}</span></label>`).join('');
+  }
+
+  function addPerson() {
+    const n = peopleEl.children.length;
+    if (n >= MAX_FAMILY) return toast(`一次最多報名 ${MAX_FAMILY} 位`, true);
+    const k = personSeq++;
+    const div = document.createElement('div');
+    div.className = 'person';
+    div.innerHTML = `
+      <div class="person-head">
+        <span class="person-title"></span>
+        <button type="button" class="person-remove" aria-label="移除這位">移除</button>
+      </div>
+      <label class="field"><span>姓名 <em>*</em></span>
+        <input type="text" name="p${k}-name" maxlength="30" placeholder="請輸入姓名"></label>
+      <div class="person-row">
+        <fieldset class="field"><legend>性別 <em>*</em></legend><div class="chips">${chipGroup(`p${k}-gender`, GENDERS)}</div></fieldset>
+        <fieldset class="field"><legend>身分 <em>*</em></legend><div class="chips">${chipGroup(`p${k}-role`, ROLES)}</div></fieldset>
+      </div>`;
+    div.dataset.k = k;
+    peopleEl.appendChild(div);
+    renumber();
+    if (n) div.querySelector('input').focus();
+  }
+
+  function renumber() {
+    const items = [...peopleEl.children];
+    items.forEach((el, i) => {
+      el.querySelector('.person-title').textContent = i === 0 ? (items.length > 1 ? '報名人' : '報名資料') : `家人 ${i}`;
+      el.querySelector('.person-remove').hidden = items.length === 1;
+    });
+    $('#add-person').hidden = items.length >= MAX_FAMILY;
+    form.querySelector('button[type=submit]').textContent = items.length > 1 ? `送出報名（${items.length} 位）` : '送出報名';
+  }
+
+  function resetForm() {
+    form.reset();
+    form.areaOther.hidden = true;
+    peopleEl.innerHTML = '';
+    addPerson();
+  }
+
+  $('#add-person').addEventListener('click', addPerson);
+  peopleEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.person-remove');
+    if (!btn) return;
+    btn.closest('.person').remove();
+    renumber();
+  });
+
   form.addEventListener('change', (e) => {
     if (e.target.name === 'area') form.areaOther.hidden = e.target.value !== '其他';
   });
@@ -284,23 +367,31 @@
     const errEl = $('#form-error');
     errEl.textContent = '';
     const fd = new FormData(form);
-    const data = Object.fromEntries(fd.entries());
+    const members = [...peopleEl.children].map((el) => {
+      const k = el.dataset.k;
+      return { name: String(fd.get(`p${k}-name`) || '').trim(), gender: fd.get(`p${k}-gender`), role: fd.get(`p${k}-role`) };
+    });
     const missing = [];
-    if (!String(data.name || '').trim()) missing.push('姓名');
-    if (!data.gender) missing.push('性別');
-    if (!data.role) missing.push('身分');
-    if (!data.area) missing.push('小區');
+    members.forEach((m, i) => {
+      const who = members.length > 1 ? (i ? `家人 ${i} ` : '報名人') : '';
+      if (!m.name) missing.push(`${who}姓名`);
+      if (!m.gender) missing.push(`${who}${m.name && who ? `（${m.name}）` : ''}性別`);
+      if (!m.role) missing.push(`${who}${m.name && who ? `（${m.name}）` : ''}身分`);
+    });
+    if (!fd.get('area')) missing.push('小區');
     if (missing.length) {
       errEl.textContent = `請填寫：${missing.join('、')}`;
       return;
     }
+    const data = { members, area: fd.get('area'), areaOther: fd.get('areaOther'), note: fd.get('note') };
     const btn = form.querySelector('button[type=submit]');
+    const label = btn.textContent;
     btn.disabled = true;
     btn.textContent = '送出中⋯⋯';
     try {
       const res = await call('register', { data });
       setMe(res.me);
-      $('#success-name').textContent = res.me.name;
+      $('#success-names').textContent = res.me.members.map((m) => m.name).join('、');
       $('#success-code').textContent = res.me.code;
       form.hidden = true;
       $('#register-success').hidden = false;
@@ -310,16 +401,15 @@
       errEl.textContent = e2.message;
     } finally {
       btn.disabled = false;
-      btn.textContent = '送出報名';
+      btn.textContent = label;
     }
   });
 
   $('#register-another').addEventListener('click', () => {
-    form.reset();
-    form.areaOther.hidden = true;
+    resetForm();
     form.hidden = false;
     $('#register-success').hidden = true;
-    form.name.focus();
+    peopleEl.querySelector('input').focus();
   });
 
   // 登入
@@ -329,13 +419,14 @@
     const errEl = $('#login-error');
     errEl.textContent = '';
     try {
-      const res = await call('login', { name: f.name.value, code: f.code.value });
+      const who = f.name.value.trim();
+      const res = await call('login', { name: who, code: f.code.value });
       setMe(res.me);
       $('#login-modal').close();
       f.reset();
       render();
       if ($('#table-modal').open) renderModal();
-      toast(`歡迎回來，${res.me.name}！`);
+      toast(`歡迎回來，${who}！`);
     } catch (e2) {
       errEl.textContent = e2.message;
     }
@@ -371,11 +462,17 @@
     const ev = CFG.EVENT || {};
     const items = [['📅', ev.date], ['⏰', ev.time], ['📍', ev.place]].filter(([, v]) => v);
     $('#event-info').innerHTML = items.map(([i, v]) => `<li>${i} ${esc(v)}</li>`).join('');
+    if (ev.address) {
+      const q = encodeURIComponent(`${ev.place || ''} ${ev.address}`.trim());
+      $('#event-address').innerHTML =
+        `${esc(ev.address)}　<a href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">開啟地圖 ↗</a>`;
+    }
   }
 
   async function init() {
     $('#demo-banner').hidden = !!CFG.API_URL;
     renderEventInfo();
+    resetForm();
     const saved = JSON.parse(localStorage.getItem(ME_KEY) || 'null');
     if (saved) {
       try {

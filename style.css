@@ -219,3 +219,30 @@ a { color: var(--accent); text-decoration: none; }
   .table-grid { grid-template-columns: repeat(2, 1fr); gap: 0.8rem; }
   .captain { font-size: 0.95rem; }
 }
+
+/* ===== 家人報名 ===== */
+.person { border: 1.5px solid var(--line); border-radius: 18px; padding: 1.2rem 1.2rem 1.3rem; display: grid; gap: 1rem; background: #fffdfa; }
+.person + .person { margin-top: 1rem; }
+.person-head { display: flex; justify-content: space-between; align-items: center; }
+.person-title { font-weight: 700; color: var(--accent-dark); font-size: 0.9rem; letter-spacing: 0.05em; }
+.person-remove { border: 0; background: none; color: var(--muted); font: inherit; font-size: 0.85rem; cursor: pointer; }
+.person-remove:hover { color: #c0392b; }
+.person-row { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.person .field input[type=text] { background: #fff; }
+.btn-dashed { background: transparent; color: var(--accent-dark); border: 2px dashed #e6b999; width: 100%; }
+.btn-dashed:hover { background: var(--accent-soft); border-color: var(--accent); }
+.field legend small { font-weight: 400; color: var(--muted); }
+.success-names { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.8rem; }
+
+/* ===== 活動地址 ===== */
+.event-address { margin-top: 0.8rem; color: var(--muted); font-size: 0.95rem; }
+.event-address:empty { display: none; }
+.event-address a { font-weight: 700; white-space: nowrap; }
+
+/* ===== 桌長 ===== */
+.dot-captain { background: var(--gold); }
+.chair.captain { fill: var(--gold); stroke: var(--gold); }
+.member-list li.is-captain { background: #fff8e8; border-color: #f1d9a4; }
+.member-list li.is-me { background: #f0f8f2; border-color: #bfdcc6; }
+.tag-captain { background: var(--gold); color: #4a3200; padding: 0.05rem 0.6rem; border-radius: 999px; font-weight: 700; }
+.member-list li.is-me .m-tag { color: var(--green); font-weight: 700; }
