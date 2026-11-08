@@ -3,133 +3,156 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Paul Wu｜個人網站</title>
-  <meta name="description" content="Paul Wu 的個人網站：關於我、服務項目、作品與聯絡方式。">
+  <title>年終愛筵報名</title>
+  <meta name="description" content="年終愛筵線上報名與選桌。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="demo-banner" id="demo-banner" hidden>
+    示範模式：資料只存在這台裝置的瀏覽器。正式使用請依 README 設定 Google 試算表。
+  </div>
+
   <header class="site-header">
     <nav class="nav container">
-      <a href="#top" class="logo">Paul Wu</a>
-      <button class="nav-toggle" aria-label="開啟選單" aria-expanded="false">☰</button>
+      <a href="#top" class="logo"><span class="logo-mark">🕯️</span>年終愛筵</a>
       <ul class="nav-links">
-        <li><a href="#about">關於我</a></li>
-        <li><a href="#services">服務</a></li>
-        <li><a href="#works">作品</a></li>
-        <li><a href="#contact">聯絡</a></li>
+        <li><a href="#register">報名</a></li>
+        <li><a href="#tables">選桌</a></li>
       </ul>
     </nav>
   </header>
 
   <main id="top">
-    <!-- 首頁主視覺 -->
     <section class="hero">
       <div class="container hero-inner">
-        <p class="eyebrow">你好，我是</p>
-        <h1>Paul Wu</h1>
-        <p class="tagline">用心服務每一位客戶，陪你把想法變成成果。</p>
+        <p class="eyebrow">YEAR-END LOVE FEAST</p>
+        <h1>年終愛筵報名</h1>
+        <p class="tagline">一年的恩典，一起在桌前感恩、相調、彼此祝福。</p>
+        <ul class="event-info" id="event-info"></ul>
         <div class="hero-actions">
-          <a href="#contact" class="btn btn-primary">與我聯絡</a>
-          <a href="#about" class="btn btn-ghost">認識我</a>
+          <a href="#register" class="btn btn-primary">立即報名</a>
+          <a href="#tables" class="btn btn-ghost">查看座位</a>
         </div>
       </div>
+      <div class="hero-glow" aria-hidden="true"></div>
     </section>
 
-    <!-- 關於我 -->
-    <section id="about" class="section">
-      <div class="container about">
-        <div class="avatar" aria-hidden="true">P</div>
-        <div>
-          <h2>關於我</h2>
-          <p>
-            這裡可以寫你的自我介紹：你的背景、專長、做事的理念，以及你希望帶給別人什麼價值。
-            用兩三段簡短的文字，讓訪客快速認識你。
-          </p>
-          <ul class="facts">
-            <li><strong>所在地</strong>台灣</li>
-            <li><strong>專長</strong>客戶服務、溝通協調</li>
-            <li><strong>興趣</strong>閱讀、學習新事物</li>
-          </ul>
+    <!-- 報名表單 -->
+    <section id="register" class="section">
+      <div class="container narrow">
+        <div class="section-head">
+          <span class="step">STEP 1</span>
+          <h2>填寫報名表</h2>
+          <p>報名完成後，就可以在下方選擇想坐的桌子。</p>
         </div>
-      </div>
-    </section>
 
-    <!-- 服務 -->
-    <section id="services" class="section section-alt">
-      <div class="container">
-        <h2>我能為你做什麼</h2>
-        <div class="cards">
-          <article class="card">
-            <div class="card-icon">💬</div>
-            <h3>諮詢服務</h3>
-            <p>了解你的需求，提供專業、客觀的建議。</p>
-          </article>
-          <article class="card">
-            <div class="card-icon">🤝</div>
-            <h3>長期陪伴</h3>
-            <p>定期回訪與追蹤，確保每一步都走得安心。</p>
-          </article>
-          <article class="card">
-            <div class="card-icon">📋</div>
-            <h3>規劃安排</h3>
-            <p>量身打造適合你的方案，清楚說明每個細節。</p>
-          </article>
-        </div>
-      </div>
-    </section>
+        <form class="card form" id="register-form" novalidate>
+          <label class="field">
+            <span>姓名 <em>*</em></span>
+            <input type="text" name="name" maxlength="30" required autocomplete="name" placeholder="請輸入姓名">
+          </label>
 
-    <!-- 作品／案例 -->
-    <section id="works" class="section">
-      <div class="container">
-        <h2>作品與案例</h2>
-        <div class="works">
-          <article class="work">
-            <div class="work-thumb" style="--hue: 210"></div>
-            <h3>案例一</h3>
-            <p>簡短描述這個案例的背景與成果。</p>
-          </article>
-          <article class="work">
-            <div class="work-thumb" style="--hue: 160"></div>
-            <h3>案例二</h3>
-            <p>簡短描述這個案例的背景與成果。</p>
-          </article>
-          <article class="work">
-            <div class="work-thumb" style="--hue: 30"></div>
-            <h3>案例三</h3>
-            <p>簡短描述這個案例的背景與成果。</p>
-          </article>
-        </div>
-      </div>
-    </section>
+          <fieldset class="field">
+            <legend>性別 <em>*</em></legend>
+            <div class="chips">
+              <label class="chip"><input type="radio" name="gender" value="男" required><span>男</span></label>
+              <label class="chip"><input type="radio" name="gender" value="女"><span>女</span></label>
+            </div>
+          </fieldset>
 
-    <!-- 聯絡 -->
-    <section id="contact" class="section section-alt">
-      <div class="container contact">
-        <div>
-          <h2>與我聯絡</h2>
-          <p>有任何問題或合作想法，歡迎留言給我，我會盡快回覆。</p>
-          <ul class="contact-list">
-            <li>📧 <a href="mailto:you@example.com">you@example.com</a></li>
-            <li>💬 LINE ID：your-line-id</li>
-          </ul>
-        </div>
-        <form class="contact-form" id="contact-form">
-          <label>姓名<input type="text" name="name" required></label>
-          <label>Email<input type="email" name="email" required></label>
-          <label>留言<textarea name="message" rows="4" required></textarea></label>
-          <button type="submit" class="btn btn-primary">送出</button>
-          <p class="form-status" role="status"></p>
+          <fieldset class="field">
+            <legend>身分 <em>*</em></legend>
+            <div class="chips">
+              <label class="chip"><input type="radio" name="role" value="聖徒" required><span>聖徒</span></label>
+              <label class="chip"><input type="radio" name="role" value="福音朋友"><span>福音朋友</span></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="field">
+            <legend>小區 <em>*</em></legend>
+            <div class="chips">
+              <label class="chip"><input type="radio" name="area" value="霧峰" required><span>霧峰</span></label>
+              <label class="chip"><input type="radio" name="area" value="朝陽"><span>朝陽</span></label>
+              <label class="chip"><input type="radio" name="area" value="其他"><span>其他</span></label>
+            </div>
+            <input type="text" name="areaOther" class="area-other" maxlength="20" placeholder="請填寫小區名稱（選填）" hidden>
+          </fieldset>
+
+          <label class="field">
+            <span>備註</span>
+            <textarea name="note" rows="3" maxlength="200" placeholder="例如：飲食需求、與誰同行⋯⋯"></textarea>
+          </label>
+
+          <p class="form-error" id="form-error" role="alert"></p>
+          <button type="submit" class="btn btn-primary btn-block">送出報名</button>
         </form>
+
+        <div class="card success" id="register-success" hidden>
+          <div class="success-icon">🎉</div>
+          <h3><span id="success-name"></span>，報名成功！</h3>
+          <p>你的修改碼是</p>
+          <p class="code" id="success-code"></p>
+          <p class="hint">請記下這組數字。換手機或電腦時，可以用「姓名＋修改碼」登入並更換桌次。</p>
+          <div class="success-actions">
+            <a href="#tables" class="btn btn-primary">前往選桌</a>
+            <button type="button" class="btn btn-ghost" id="register-another">幫其他人報名</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 選桌 -->
+    <section id="tables" class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="step">STEP 2</span>
+          <h2>選擇你的座位</h2>
+          <p>點選桌子可以看到目前坐在那桌的人，每桌最多 <strong id="capacity-text">10</strong> 位。</p>
+        </div>
+
+        <div class="my-status card" id="my-status"></div>
+
+        <div class="legend">
+          <span><i class="dot dot-taken"></i>已入座</span>
+          <span><i class="dot dot-empty"></i>空位</span>
+          <span><i class="dot dot-mine"></i>我的座位</span>
+        </div>
+
+        <div class="table-grid" id="table-grid">
+          <p class="loading">座位載入中⋯⋯</p>
+        </div>
       </div>
     </section>
   </main>
 
   <footer class="site-footer">
-    <div class="container">
-      <p>© <span id="year"></span> Paul Wu. All rights reserved.</p>
-    </div>
+    <p>願主祝福每一張桌子，滿了感恩與喜樂。</p>
   </footer>
 
-  <script src="script.js"></script>
+  <!-- 桌子詳情 -->
+  <dialog class="modal" id="table-modal">
+    <form method="dialog"><button class="modal-close" aria-label="關閉">×</button></form>
+    <div id="table-modal-body"></div>
+  </dialog>
+
+  <!-- 用修改碼登入 -->
+  <dialog class="modal" id="login-modal">
+    <form method="dialog"><button class="modal-close" aria-label="關閉">×</button></form>
+    <h3>已報名？登入以更換桌次</h3>
+    <form class="form" id="login-form">
+      <label class="field"><span>姓名</span><input type="text" name="name" required></label>
+      <label class="field"><span>修改碼</span><input type="text" name="code" inputmode="numeric" maxlength="4" required></label>
+      <p class="form-error" id="login-error" role="alert"></p>
+      <button type="submit" class="btn btn-primary btn-block">登入</button>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

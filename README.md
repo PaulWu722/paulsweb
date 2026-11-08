@@ -1,18 +1,39 @@
-# paulsweb
+# 年終愛筵報名
 
-Paul Wu 的個人網站（純 HTML / CSS / JavaScript，不需要安裝任何套件）。
+線上報名＋選桌網站（純 HTML / CSS / JS），資料存在 Google 試算表。
+
+- 報名表：姓名、性別、身分（聖徒／福音朋友）、小區（霧峰／朝陽／其他）、備註
+- 選桌：20 桌、每桌最多 10 位，桌子圖案上顯示桌長；點進去可看到該桌名單，已滿會顯示「已滿」
+- 報名後會拿到 4 位數「修改碼」，可隨時換桌；換裝置時用「姓名＋修改碼」登入
+
+## 檔案
+| 檔案 | 說明 |
+|---|---|
+| `index.html` / `style.css` / `app.js` | 網站本體 |
+| `config.js` | **唯一需要修改的設定**：後端網址、活動日期／時間／地點 |
+| `apps-script/Code.gs` | Google Apps Script 後端（貼到試算表裡） |
+
+`config.js` 的 `API_URL` 留空時是**示範模式**：資料只存在自己的瀏覽器，方便預覽外觀。
+
+## 設定後端（約 5 分鐘）
+1. 新增一個 Google 試算表，點選「擴充功能 → Apps Script」。
+2. 把 `apps-script/Code.gs` 的內容整個貼上（取代原本的程式碼），儲存。
+3. 上方函式選單選 `setup`，按「執行」，依指示授權。試算表會出現「報名名單」與「桌長」兩個工作表。
+4. 到「桌長」工作表填入 20 位桌長的姓名（之後隨時可以改，網站會自動更新）。
+5. 右上角「部署 → 新增部署作業」→ 類型選「網頁應用程式」：
+   - 執行身分：**我**
+   - 誰可以存取：**所有人**
+6. 部署後複製網址（結尾是 `/exec`），貼到 `config.js` 的 `API_URL`。
+
+> 之後若修改 `Code.gs`，要用「部署 → 管理部署作業 → 編輯 → 版本：新版本」重新部署，網址不會變。
+
+每桌人數上限可改 `Code.gs` 最上方的 `CAPACITY`。
+
+## 上線（GitHub Pages）
+GitHub 儲存庫 → Settings → Pages → 選擇分支與 `/ (root)` → 儲存，就會得到公開網址，把它分享出去即可。
 
 ## 本機預覽
-直接用瀏覽器打開 `index.html`，或執行：
 ```bash
 python3 -m http.server 8000
 ```
-然後開啟 http://localhost:8000
-
-## 修改內容
-- `index.html`：文字內容（自我介紹、服務、案例、聯絡方式）
-- `style.css`：顏色與版面（主色在最上方的 `--primary`）
-- `script.js`：把 `CONTACT_EMAIL` 改成你的 Email
-
-## 上線（GitHub Pages）
-到 GitHub 儲存庫 → Settings → Pages → 選擇分支與 `/ (root)` → 儲存。
+開啟 http://localhost:8000
