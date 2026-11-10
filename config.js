@@ -2,8 +2,9 @@
 window.APP_CONFIG = {
   // Supabase 連線資訊（Supabase 後台 → Project Settings → API）
   // 兩個都留空 = 示範模式（資料只存在自己的瀏覽器，方便預覽）。
-  SUPABASE_URL: '',  // 例如 'https://abcdefghijkl.supabase.co'
-  SUPABASE_KEY: '',  // anon public 金鑰（eyJ... 開頭）或 publishable 金鑰（sb_publishable_ 開頭）
+  SUPABASE_URL: 'https://gserdnkovlwfdgcaguqe.supabase.co',
+  // publishable 金鑰：本來就是給網站公開使用的（不是 secret / service_role 金鑰）
+  SUPABASE_KEY: 'sb_publishable_OkPLiqg_-Jnu1ywt8j-o0A_R_BFyIZN',
 
   // 活動資訊：留空的項目不會顯示
   EVENT: {

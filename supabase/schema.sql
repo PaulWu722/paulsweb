@@ -63,7 +63,7 @@ revoke all on public.feast_roster from anon, authenticated;
 
 -- 每桌人數上限（含桌長）
 create or replace function public.feast_capacity() returns int
-language sql immutable as $$ select 10 $$;
+language sql immutable set search_path = '' as $$ select 10 $$;
 
 -- ---------- 內部工具函式 ----------
 
