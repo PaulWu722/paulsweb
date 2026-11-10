@@ -6,6 +6,9 @@ window.APP_CONFIG = {
   // publishable 金鑰：本來就是給網站公開使用的（不是 secret / service_role 金鑰）
   SUPABASE_KEY: 'sb_publishable_OkPLiqg_-Jnu1ywt8j-o0A_R_BFyIZN',
 
+  // 單位名稱（用於「複製名單文字」的第一行）
+  ORG_NAME: '台中市召會-十七會所(霧峰小區)',
+
   // 活動資訊：留空的項目不會顯示
   EVENT: {
     date: '12/20（日）',

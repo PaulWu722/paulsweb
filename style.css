@@ -16,6 +16,7 @@
   --serif: "Noto Serif TC", "Songti TC", serif;
 }
 
+[hidden] { display: none !important; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; scroll-padding-top: 72px; }
 body {
@@ -248,3 +249,4 @@ a { color: var(--accent); text-decoration: none; }
 .member-list li.is-me .m-tag { color: var(--green); font-weight: 700; }
 
 .captain.tbd { color: var(--muted); font-weight: 600; font-size: 0.9rem; }
+.admin-link { color: var(--muted); font-size: 0.85rem; text-decoration: underline; }

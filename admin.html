@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>桌次管理｜年終愛筵</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin">
+  <div class="demo-banner" id="demo-banner" hidden>示範模式：密碼 1234，資料只存在這台裝置的瀏覽器。</div>
+
+  <header class="site-header">
+    <nav class="nav container wide">
+      <a href="index.html" class="logo"><span class="logo-mark">🕯️</span>年終愛筵<span class="logo-sub">桌次管理</span></a>
+      <ul class="nav-links">
+        <li><a href="index.html">報名頁</a></li>
+        <li><a href="#" id="logout" hidden>登出</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- 密碼 -->
+  <main class="gate" id="gate">
+    <form class="card gate-card" id="gate-form">
+      <div class="gate-icon">🔒</div>
+      <h1>桌次管理</h1>
+      <p class="muted">此頁面僅供同工使用，請輸入密碼。</p>
+      <input type="password" name="pass" inputmode="numeric" autocomplete="current-password" placeholder="密碼" required autofocus>
+      <p class="form-error" id="gate-error" role="alert"></p>
+      <button type="submit" class="btn btn-primary btn-block">進入</button>
+    </form>
+  </main>
+
+  <!-- 管理畫面 -->
+  <main class="board container wide" id="board" hidden>
+    <div class="board-head">
+      <div>
+        <h1>桌次名單</h1>
+        <p class="muted">拖曳名字即可換桌；拖到「尚未安排」即移出座位。每桌上限 <strong id="cap">10</strong> 人（含桌長）。</p>
+      </div>
+      <div class="board-actions">
+        <button type="button" class="btn btn-small btn-ghost" id="refresh">↻ 重新整理</button>
+        <button type="button" class="btn btn-small btn-primary" id="copy-text">複製名單文字</button>
+      </div>
+    </div>
+
+    <ul class="stats" id="stats"></ul>
+
+    <section class="unseated card" id="unseated-box">
+      <div class="unseated-head">
+        <h2>☆ 尚未安排桌次 <span class="count" id="unseated-count">0</span></h2>
+      </div>
+      <ul class="chip-list drop-zone" id="unseated" data-table="0"></ul>
+    </section>
+
+    <div class="table-boards" id="tables"></div>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

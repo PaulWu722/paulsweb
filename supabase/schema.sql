@@ -231,3 +231,86 @@ grant execute on function public.feast_register(jsonb, text, text, text) to anon
 grant execute on function public.feast_login(text, text) to anon, authenticated;
 grant execute on function public.feast_me(uuid, text) to anon, authenticated;
 grant execute on function public.feast_seat(uuid, text, int) to anon, authenticated;
+
+-- =====================================================================
+-- 同工管理頁（admin.html）：密碼保護的名單與拖曳換座
+-- 修改密碼：update public.feast_settings
+--   set value = encode(sha256(convert_to('新密碼', 'UTF8')), 'hex')
+--   where key = 'admin_password_sha256';
+-- =====================================================================
+
+create table if not exists public.feast_settings (
+  key   text primary key,
+  value text not null
+);
+alter table public.feast_settings enable row level security;
+
+insert into public.feast_settings (key, value)
+values ('admin_password_sha256', encode(sha256(convert_to('1234', 'UTF8')), 'hex'))
+on conflict (key) do nothing;
+
+create or replace function public.feast_admin_check(p_pass text)
+returns void language plpgsql stable security definer set search_path = public as $$
+begin
+  if not exists (
+    select 1 from feast_settings
+    where key = 'admin_password_sha256'
+      and value = encode(sha256(convert_to(coalesce(p_pass, ''), 'UTF8')), 'hex')
+  ) then
+    raise exception '密碼錯誤';
+  end if;
+end $$;
+
+create or replace function public.feast_admin_overview(p_pass text)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+begin
+  perform feast_admin_check(p_pass);
+  return jsonb_build_object(
+    'capacity', feast_capacity(),
+    'tables', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'no', t.no, 'captain', t.captain, 'count', feast_count(t.no),
+        'members', coalesce((
+          select jsonb_agg(jsonb_build_object('id', p.id, 'name', p.name, 'area', f.area, 'family', f.id) order by f.created_at, p.sort)
+          from feast_families f join feast_people p on p.family_id = f.id
+          where f.table_no = t.no), '[]'::jsonb)
+      ) order by t.no), '[]'::jsonb)
+      from feast_tables t),
+    'unseated', coalesce((
+      select jsonb_agg(jsonb_build_object('id', p.id, 'name', p.name, 'area', f.area, 'family', f.id) order by f.created_at, p.sort)
+      from feast_families f join feast_people p on p.family_id = f.id
+      where f.table_no is null), '[]'::jsonb));
+end $$;
+
+-- 把一個人移到某桌（0 = 移回尚未安排）；若與家人同組，會單獨分出（保留修改碼）
+create or replace function public.feast_admin_move(p_pass text, p_person uuid, p_table int)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare
+  v_family uuid;
+  v_size int;
+  v_new uuid;
+begin
+  perform feast_admin_check(p_pass);
+  if coalesce(p_table, 0) <> 0 and not exists (select 1 from feast_tables where no = p_table) then
+    raise exception '桌號不正確';
+  end if;
+
+  select family_id into v_family from feast_people where id = p_person;
+  if v_family is null then raise exception '找不到這個人，請重新整理'; end if;
+
+  select count(*) into v_size from feast_people where family_id = v_family;
+  if v_size > 1 then
+    insert into feast_families (code, area, note, table_no, created_at)
+    select code, area, note, nullif(p_table, 0), created_at from feast_families where id = v_family
+    returning id into v_new;
+    update feast_people set family_id = v_new where id = p_person;
+  else
+    update feast_families set table_no = nullif(p_table, 0) where id = v_family;
+  end if;
+
+  return feast_admin_overview(p_pass);
+end $$;
+
+revoke execute on function public.feast_admin_check(text) from public, anon, authenticated;
+grant execute on function public.feast_admin_overview(text) to anon, authenticated;
+grant execute on function public.feast_admin_move(text, uuid, int) to anon, authenticated;
