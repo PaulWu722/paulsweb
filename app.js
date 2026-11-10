@@ -16,20 +16,34 @@
   // 目前登入的家庭 {id, code, table, members:[{name, gender, role, area}]}
   let me = null;
 
-  // ================= 後端：Google Apps Script =================
+  // ================= 後端：Supabase =================
+  // 每個動作對應 supabase/schema.sql 裡的一個資料庫函式
+  const RPC = {
+    state: () => ['feast_state', {}],
+    register: (p) => ['feast_register', {
+      p_members: p.data.members, p_area: p.data.area,
+      p_area_other: p.data.areaOther || '', p_note: p.data.note || '',
+    }],
+    login: (p) => ['feast_login', { p_name: p.name, p_code: p.code }],
+    me: (p) => ['feast_me', { p_id: p.id, p_code: p.code }],
+    seat: (p) => ['feast_seat', { p_id: p.id, p_code: p.code, p_table: p.table }],
+  };
+
+  let sb = null;
   async function remoteCall(action, payload = {}) {
-    const res = await fetch(CFG.API_URL, {
-      method: 'POST',
-      // 用 text/plain 避免 CORS 預檢，Apps Script 才收得到
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action, ...payload }),
-    });
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error || '發生錯誤，請稍後再試');
-    return json;
+    if (!sb) sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_KEY);
+    const [fn, args] = RPC[action](payload);
+    const { data, error } = await sb.rpc(fn, args);
+    if (error) {
+      // 資料庫裡 raise exception 的中文訊息會在 error.message
+      const msg = /[\u4e00-\u9fff]/.test(error.message || '') ? error.message : '連線發生問題，請稍後再試';
+      if (!/[\u4e00-\u9fff]/.test(error.message || '')) console.error(error);
+      throw new Error(msg);
+    }
+    return { ok: true, ...data };
   }
 
-  // ================= 示範模式：用 localStorage 模擬後端（邏輯同 Code.gs） =================
+  // ================= 示範模式：用 localStorage 模擬後端（邏輯同 supabase/schema.sql） =================
   const DEMO_KEY = 'aiyan-demo-db-v2';
   const DEMO_CAPACITY = 10;
 
@@ -117,7 +131,8 @@
     return JSON.parse(JSON.stringify({ ok: true, ...res }));
   }
 
-  const call = CFG.API_URL ? remoteCall : demoCall;
+  const LIVE = !!(CFG.SUPABASE_URL && CFG.SUPABASE_KEY);
+  const call = LIVE ? remoteCall : demoCall;
 
   // ================= 工具 =================
   let toastTimer;
@@ -470,7 +485,7 @@
   }
 
   async function init() {
-    $('#demo-banner').hidden = !!CFG.API_URL;
+    $('#demo-banner').hidden = LIVE;
     renderEventInfo();
     resetForm();
     const saved = JSON.parse(localStorage.getItem(ME_KEY) || 'null');
