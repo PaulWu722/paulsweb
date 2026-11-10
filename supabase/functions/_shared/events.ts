@@ -5,7 +5,7 @@ export const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPA
   auth: { persistSession: false },
 });
 
-export const LIFF_ID = Deno.env.get('LIFF_ID') ?? '2012412693-a7phfbWa';
+export const LIFF_ID = Deno.env.get('LIFF_ID') ?? '2012523033-BncNNabf';
 export const liffUrl = (id: string) => `https://liff.line.me/${LIFF_ID}?event=${encodeURIComponent(id)}`;
 
 export type User = { userId: string; displayName: string };

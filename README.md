@@ -2,7 +2,7 @@
 
 在 LINE 裡就能 **建立活動 → 分享到群組 → 好友一鍵報名 → 主辦人看名單**。
 
-- LIFF：https://liff.line.me/2012412693-a7phfbWa
+- LIFF：https://liff.line.me/2012523033-BncNNabf
 - 前端：純靜態網頁（GitHub Pages 即可）
 - 後端：**Supabase**（Postgres + Edge Function，推薦）或 Google Apps Script + 試算表，二擇一
 
@@ -37,7 +37,7 @@ gas/Code.gs  （替代方案）Google Apps Script 後端
 2. 取得網址，例如 `https://paulwu722.github.io/paulsweb/`。
 
 ### 2. 設定 LIFF
-LINE Developers Console → 你的 LINE Login Channel → **LIFF** → `2012412693-a7phfbWa`：
+LINE Developers Console → 你的 LINE Login Channel → **LIFF** → `2012523033-BncNNabf`：
 - **Endpoint URL**：填上一步的 GitHub Pages 網址
 - **Size**：Full（建議）
 - **Scope**：勾選 `openid`、`profile`（**`openid` 一定要勾**，後端驗證身分用）
@@ -78,7 +78,7 @@ supabase functions deploy api          # config.toml 已設定 verify_jwt = fals
 > 之後修改 Code.gs 要「管理部署作業 → 編輯 → 版本選新版本」才會生效。
 
 ### 4. 使用
-在 LINE 聊天室貼上 `https://liff.line.me/2012412693-a7phfbWa` 點開即可。
+在 LINE 聊天室貼上 `https://liff.line.me/2012523033-BncNNabf` 點開即可。
 建議把這個網址設成官方帳號的 Rich Menu 按鈕。
 
 ## 示範模式
