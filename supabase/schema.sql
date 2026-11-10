@@ -37,6 +37,10 @@ create table if not exists public.feast_people (
   created_at timestamptz not null default now()
 );
 
+-- 由名單匯入的人可能沒有性別／身分資料（網站報名仍必填）
+alter table public.feast_people alter column gender drop not null;
+alter table public.feast_people alter column role drop not null;
+
 create index if not exists feast_people_family_idx on public.feast_people (family_id);
 create index if not exists feast_families_table_idx on public.feast_families (table_no);
 

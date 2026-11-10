@@ -246,3 +246,5 @@ a { color: var(--accent); text-decoration: none; }
 .member-list li.is-me { background: #f0f8f2; border-color: #bfdcc6; }
 .tag-captain { background: var(--gold); color: #4a3200; padding: 0.05rem 0.6rem; border-radius: 999px; font-weight: 700; }
 .member-list li.is-me .m-tag { color: var(--green); font-weight: 700; }
+
+.captain.tbd { color: var(--muted); font-weight: 600; font-size: 0.9rem; }

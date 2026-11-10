@@ -184,12 +184,12 @@
       const status = full ? '已滿' : `${t.count} / ${state.capacity} 人`;
       return `
         <button type="button" class="table-card${full ? ' is-full' : ''}${mine ? ' is-mine' : ''}" data-no="${t.no}"
-          aria-label="第 ${t.no} 桌，桌長 ${esc(t.captain)}，${status}">
+          aria-label="第 ${t.no} 桌，桌長 ${esc(t.captain || '待定')}，${status}">
           <div class="table-visual">
             ${tableSvg(t, mine)}
             <div class="table-label">
               <span class="table-no">第 ${t.no} 桌</span>
-              <span class="captain">${esc(t.captain)}</span>
+              <span class="captain${t.captain ? '' : ' tbd'}">${esc(t.captain || '桌長待定')}</span>
             </div>
           </div>
           <div class="table-meta">
