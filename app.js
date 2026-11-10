@@ -101,7 +101,14 @@
     try {
       await liff.init({ liffId: CFG.LIFF_ID });
       state.liffReady = true;
-      if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return false; }
+      if (!liff.isLoggedIn()) {
+        // LINE 登入的 redirect_uri 不能含 #（否則 LINE 顯示 400 Bad Request），先暫存 hash，登入回來再還原
+        if (location.hash && location.hash !== '#/') sessionStorage.setItem('after-login-hash', location.hash);
+        liff.login({ redirectUri: location.origin + location.pathname + location.search });
+        return false;
+      }
+      const savedHash = sessionStorage.getItem('after-login-hash');
+      if (savedHash) { sessionStorage.removeItem('after-login-hash'); history.replaceState(null, '', location.pathname + location.search + savedHash); }
       state.profile = await liff.getProfile();
       state.idToken = liff.getIDToken();
     } catch (e) {
