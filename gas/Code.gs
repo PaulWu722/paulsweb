@@ -6,7 +6,7 @@
  */
 
 // LINE Login Channel ID（LIFF ID 的「-」前面那串數字）
-const CHANNEL_ID = '2012412693';
+const CHANNEL_ID = '2012523033';
 
 const EVENT_COLS = ['id', 'ownerId', 'ownerName', 'title', 'date', 'time', 'location', 'description',
   'capacity', 'maxPerPerson', 'deadline', 'askPhone', 'status', 'createdAt', 'updatedAt'];

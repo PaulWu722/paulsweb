@@ -62,13 +62,13 @@ supabase functions deploy api          # config.toml 已設定 verify_jwt = fals
 ```
 
 - `SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY` 是 Edge Function 內建環境變數，不用自己設。
-- 若 LINE Channel ID 不是 `2012412693`，到 Edge Functions → Secrets 新增 `LINE_CHANNEL_ID`。
+- 若 LINE Channel ID 不是 `2012523033`，到 Edge Functions → Secrets 新增 `LINE_CHANNEL_ID`。
 - 資料可直接在 **Table Editor** 查看 `events`、`registrations`，也能匯出 CSV。
 - 資料表有開 RLS 且沒有任何 policy，前端拿 anon key 也讀不到，所有存取都必須經過 function。
 
 ### 3B. 建立後端：Google Apps Script（替代方案）
 1. 新增一份 Google 試算表 → **擴充功能 → Apps Script**。
-2. 把 `gas/Code.gs` 全部內容貼上並儲存（`CHANNEL_ID` 已填 `2012412693`）。
+2. 把 `gas/Code.gs` 全部內容貼上並儲存（`CHANNEL_ID` 已填 `2012523033`）。
 3. **部署 → 新增部署作業** → 類型選「網頁應用程式」
    - 執行身分：**我**
    - 存取權：**所有人**

@@ -2,7 +2,7 @@
 // 前端 POST { action, idToken, ... }，回傳 { ok, data } 或 { ok:false, error }（與 gas/Code.gs 相同協定）
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const CHANNEL_ID = Deno.env.get('LINE_CHANNEL_ID') ?? '2012412693';
+const CHANNEL_ID = Deno.env.get('LINE_CHANNEL_ID') ?? '2012523033';
 const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
   auth: { persistSession: false },
 });
