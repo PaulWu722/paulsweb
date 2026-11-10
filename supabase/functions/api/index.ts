@@ -217,6 +217,16 @@ const actions: Record<string, (b: Row, u: User) => Promise<unknown>> = {
     return {};
   },
 
+  async deleteEvent(b, u) {
+    const ev = await getEvent(String(b.id));
+    if (ev.owner_id !== u.userId) throw new UserError('只有主辦人可以刪除');
+    must(await db.from('events').delete().eq('id', ev.id).eq('owner_id', u.userId)); // 登記資料會 on delete cascade 一起刪除
+    // 一併刪掉上傳到本專案 Storage 的圖片（貼外部網址的不動）
+    const m = String(ev.image_url ?? '').match(/\/storage\/v1\/object\/public\/event-images\/(.+)$/);
+    if (m) await db.storage.from('event-images').remove([decodeURIComponent(m[1])]).catch(() => {});
+    return {};
+  },
+
   async cancel(b, u) {
     must(await db.from('registrations').update({ status: 'cancelled', updated_at: new Date().toISOString() })
       .eq('event_id', String(b.id)).eq('user_id', u.userId).eq('status', 'active'));

@@ -197,6 +197,10 @@
         for (const q of ev.questions || []) if (q.type !== 'companions' && answers[q.id]) p.answers[q.label] = answers[q.id];
         db.profiles[me.userId] = p; save(); return {};
       }
+      case 'deleteEvent': {
+        const ev = find(d.id); if (ev.ownerId !== me.userId) throw new Error('只有主辦人可以刪除');
+        db.events = db.events.filter((e) => e.id !== d.id); db.regs = db.regs.filter((r) => r.eventId !== d.id); save(); return {};
+      }
       case 'cancel': { const r = active(d.id).find((x) => x.userId === me.userId); if (r) r.status = 'cancelled'; save(); return {}; }
       case 'myEvents': {
         const created = db.events.filter((e) => e.ownerId === me.userId).map(withCount);
@@ -533,7 +537,12 @@
           </label>
         </section>
       </form>
-      ${editing ? '' : footerLinks()}`;
+      ${editing ? `
+      <section class="danger-zone">
+        <h3>刪除活動</h3>
+        <p>活動和${opts.event.regCount ? `已登記的 ${opts.event.regCount} 筆名單` : '所有資料'}會一起刪除，無法復原。群組裡的舊圖卡點進去會顯示「找不到活動」。</p>
+        <button type="button" class="btn btn-danger" id="delete">${ICON.trash}刪除這個活動</button>
+      </section>` : footerLinks()}`;
 
     setBar(editing
       ? `<button class="btn" type="button" id="submit">儲存變更</button>`
@@ -706,6 +715,22 @@
           location.hash = '#/e/' + ev.id;
         }
       } catch (err) { toast(err.message); busy(btn, false); }
+    };
+
+    // ---- 刪除（編輯模式）----
+    const del = root.querySelector('#delete');
+    if (del) del.onclick = async () => {
+      const ev = opts.event;
+      const n = Number(ev.regCount) || 0;
+      if (!confirm(n ? `「${ev.title}」已有 ${n} 筆登記（共 ${ev.total} 人）。\n刪除後名單會一起消失，無法復原。\n\n確定要刪除嗎？` : `確定要刪除「${ev.title}」嗎？\n刪除後無法復原。`)) return;
+      if (n && prompt(`請輸入「刪除」兩個字確認`) !== '刪除') return toast('已取消刪除');
+      busy(del, true, '刪除中…');
+      try {
+        await api('deleteEvent', { id: ev.id });
+        toast('活動已刪除');
+        state.homeTab = 'created';
+        location.hash = '#/';
+      } catch (err) { toast(err.message); busy(del, false); }
     };
 
     renderQuestions(); imgBox(); remHint(); descCount(); refresh();
