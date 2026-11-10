@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Group Meet｜管理</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#2f4a3f">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="admin">
+  <div class="demo-banner" id="demo-banner" hidden>
+    示範模式：資料只存在這台裝置的瀏覽器，密碼是 1234。
+  </div>
+
+  <header class="site-header">
+    <div class="container nav">
+      <a href="./" class="logo"><span class="logo-mark">📖</span><span>Group Meet</span><span class="logo-tag">管理</span></a>
+      <div class="nav-right">
+        <a href="./" class="icon-btn subtle">回首頁</a>
+        <button type="button" class="icon-btn subtle" id="logout" hidden>登出</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main narrow">
+    <!-- 登入 -->
+    <section class="card login" id="login">
+      <h1>管理登入</h1>
+      <p class="muted">輸入管理密碼後，就可以上傳每週的信息 PDF 與讀經進度。</p>
+      <form id="login-form" class="form">
+        <label class="field">
+          <span>管理密碼</span>
+          <input type="password" id="pass" autocomplete="current-password" required>
+        </label>
+        <button type="submit" class="btn primary">登入</button>
+        <p class="form-error" id="login-error" hidden></p>
+      </form>
+    </section>
+
+    <!-- 上傳／編輯 -->
+    <section class="card" id="editor" hidden>
+      <h1 id="editor-title">新增一週</h1>
+      <form id="item-form" class="form">
+        <div class="row-2">
+          <label class="field">
+            <span>聚會日期 <em>*</em></span>
+            <input type="date" id="f-date" required>
+          </label>
+          <label class="field">
+            <span>標題 <em>*</em></span>
+            <input type="text" id="f-title" maxlength="200" placeholder="例：第十二週　生命的經歷" required>
+          </label>
+        </div>
+
+        <div class="field">
+          <span>信息 PDF</span>
+          <label class="drop" id="drop">
+            <input type="file" id="f-file" accept="application/pdf,.pdf">
+            <span class="drop-icon">📄</span>
+            <span class="drop-text" id="drop-text">點這裡選擇 PDF，或把檔案拖進來</span>
+            <span class="muted drop-sub" id="drop-sub">上限 50MB</span>
+          </label>
+          <button type="button" class="link-btn" id="clear-file" hidden>取消選擇的檔案</button>
+        </div>
+
+        <div class="field">
+          <span>讀經進度（聖經恢復本）</span>
+          <div id="segs" class="segs"></div>
+          <button type="button" class="btn ghost small" id="add-seg">＋ 新增一段經文</button>
+        </div>
+
+        <label class="field">
+          <span>說明／綱要 <small class="muted">（選填）</small></span>
+          <textarea id="f-note" rows="3" maxlength="2000" placeholder="例：本週重點、要背的經節、聚會地點…"></textarea>
+        </label>
+
+        <div class="form-actions">
+          <button type="button" class="btn ghost" id="cancel-edit" hidden>取消</button>
+          <button type="submit" class="btn primary" id="submit-btn">發布</button>
+        </div>
+        <p class="form-error" id="form-error" hidden></p>
+      </form>
+    </section>
+
+    <!-- 列表 -->
+    <section class="card" id="list-card" hidden>
+      <h2>已發布 <small class="muted" id="list-count"></small></h2>
+      <ul class="admin-list" id="admin-list"></ul>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="bible.js"></script>
+  <script src="api.js"></script>
+  <script src="common.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

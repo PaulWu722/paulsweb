@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Group Meet｜小排聚會</title>
+  <meta name="description" content="小排聚會每週信息 PDF 與讀經進度（聖經恢復本）。">
+  <meta name="theme-color" content="#2f4a3f">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="demo-banner" id="demo-banner" hidden>
+    示範模式：資料只存在這台裝置的瀏覽器。正式使用請依 README 連接 Supabase。
+  </div>
+
+  <header class="site-header">
+    <div class="container nav">
+      <a href="./" class="logo"><span class="logo-mark">📖</span><span>Group Meet</span></a>
+      <div class="nav-right">
+        <button type="button" class="icon-btn" id="share-btn" title="分享連結">分享</button>
+        <a href="admin.html" class="icon-btn subtle" title="上傳信息（管理）">管理</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main">
+    <p class="loading" id="loading">載入中…</p>
+
+    <div class="empty card" id="empty" hidden>
+      <div class="empty-icon">🗂️</div>
+      <h2>還沒有任何信息</h2>
+      <p class="muted">到<a href="admin.html">管理頁面</a>上傳第一週的信息 PDF 與讀經進度。</p>
+    </div>
+
+    <section class="card current" id="current" hidden>
+      <div class="cur-head">
+        <div class="cur-meta">
+          <span class="badge" id="cur-badge">本次聚會</span>
+          <span class="cur-date" id="cur-date"></span>
+          <button type="button" class="link-btn" id="back-current" hidden>← 回到本次聚會</button>
+        </div>
+        <h1 id="cur-title"></h1>
+        <p class="cur-note" id="cur-note" hidden></p>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab active" data-tab="pdf" role="tab" aria-selected="true">
+          <span>📄 信息</span><small></small>
+        </button>
+        <button type="button" class="tab" data-tab="bible" id="tab-btn-bible" role="tab" aria-selected="false">
+          <span>📖 聖經進度</span><small></small>
+        </button>
+      </div>
+
+      <div class="tab-panel" id="tab-pdf" role="tabpanel">
+        <div class="pdf-tools" id="pdf-tools">
+          <div class="zoom">
+            <button type="button" id="zoom-out" aria-label="縮小">−</button>
+            <button type="button" id="zoom-label" title="恢復 100%">100%</button>
+            <button type="button" id="zoom-in" aria-label="放大">＋</button>
+          </div>
+          <span class="muted" id="page-count"></span>
+          <span class="spacer"></span>
+          <a class="tool-link" id="pdf-open" href="#" target="_blank" rel="noopener">開新視窗</a>
+          <a class="tool-link" id="pdf-download" href="#" download>下載</a>
+        </div>
+        <div class="pages" id="pages"></div>
+      </div>
+
+      <div class="tab-panel" id="tab-bible" role="tabpanel" hidden>
+        <div id="bible-body"></div>
+      </div>
+    </section>
+
+    <section class="archive" id="archive" hidden>
+      <div class="archive-head">
+        <h2>往期信息</h2>
+        <input type="search" id="archive-search" placeholder="搜尋標題、書卷、日期…">
+      </div>
+      <ul class="archive-list" id="archive-list"></ul>
+    </section>
+  </main>
+
+  <footer class="footer muted">經文連結：<a href="https://www.recoveryversion.com.tw/" target="_blank" rel="noopener">網上聖經─聖經恢復本</a></footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="bible.js"></script>
+  <script src="api.js"></script>
+  <script src="common.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
