@@ -1,0 +1,3 @@
+# 這支 function 自己用 LINE ID Token 驗證身分，不需要 Supabase JWT
+[functions.api]
+verify_jwt = false

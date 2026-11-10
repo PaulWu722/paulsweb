@@ -1,7 +1,8 @@
 /* 簡易活動登記 LIFF App */
 (() => {
   const CFG = window.APP_CONFIG || {};
-  const DEMO = !CFG.GAS_URL;
+  const API_URL = CFG.SUPABASE_URL ? CFG.SUPABASE_URL.replace(/\/$/, '') + '/functions/v1/api' : CFG.GAS_URL;
+  const DEMO = !API_URL;
   const $app = document.getElementById('app');
 
   const state = { profile: null, idToken: null, liffReady: false };
@@ -34,11 +35,14 @@
   // ---------- API ----------
   async function api(action, data = {}) {
     if (DEMO) return demoApi(action, data);
-    const res = await fetch(CFG.GAS_URL, {
+    const res = await fetch(API_URL, {
       method: 'POST',
-      body: JSON.stringify({ action, idToken: state.idToken, ...data }), // text/plain，避免 CORS preflight
+      // Supabase 用 JSON；GAS 用 text/plain 以避免 CORS preflight
+      headers: CFG.SUPABASE_URL ? { 'Content-Type': 'application/json' } : undefined,
+      body: JSON.stringify({ action, idToken: state.idToken, ...data }),
     });
-    const json = await res.json();
+    let json;
+    try { json = await res.json(); } catch { throw new Error('伺服器沒有回應，請稍後再試'); }
     if (!json.ok) throw new Error(json.error || '發生錯誤');
     return json.data;
   }
@@ -107,7 +111,7 @@
       if (!uid) { uid = 'U-demo-' + Math.random().toString(36).slice(2, 8); localStorage.setItem('demo-uid', uid); }
       state.profile = { userId: uid, displayName: '測試使用者', pictureUrl: '' };
     }
-    if (DEMO) banner('⚠️ 示範模式：尚未設定 GAS_URL，資料只會存在這支手機／瀏覽器。');
+    if (DEMO) banner('⚠️ 示範模式：尚未設定 SUPABASE_URL，資料只會存在這支手機／瀏覽器。');
     const p = state.profile;
     document.getElementById('user').innerHTML = `${p.pictureUrl ? `<img src="${esc(p.pictureUrl)}" alt="">` : ''}<span>${esc(p.displayName)}</span>`;
     return true;
