@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>年終愛筵報名</title>
+  <meta name="description" content="年終愛筵線上報名與選桌。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="demo-banner" id="demo-banner" hidden>
+    示範模式：資料只存在這台裝置的瀏覽器。正式使用請依「教學.md」連接 Supabase。
+  </div>
+
+  <header class="site-header">
+    <nav class="nav container">
+      <a href="#top" class="logo"><span class="logo-mark">🕯️</span>年終愛筵</a>
+      <ul class="nav-links">
+        <li><a href="#register">報名</a></li>
+        <li><a href="#tables">選桌</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="container hero-inner">
+        <p class="eyebrow">YEAR-END LOVE FEAST</p>
+        <h1>年終愛筵報名</h1>
+        <p class="tagline">一年的恩典，一起在桌前感恩、相調、彼此祝福。</p>
+        <ul class="event-info" id="event-info"></ul>
+        <p class="event-address" id="event-address"></p>
+        <div class="hero-actions">
+          <a href="#register" class="btn btn-primary">立即報名</a>
+          <a href="#tables" class="btn btn-ghost">查看座位</a>
+        </div>
+      </div>
+      <div class="hero-glow" aria-hidden="true"></div>
+    </section>
+
+    <!-- 報名表單 -->
+    <section id="register" class="section">
+      <div class="container narrow">
+        <div class="section-head">
+          <span class="step">STEP 1</span>
+          <h2>填寫報名表</h2>
+          <p>可以一次幫家人一起報名，選桌時全家會坐在同一桌。</p>
+        </div>
+
+        <form class="card form" id="register-form" novalidate>
+          <div id="people"></div>
+          <button type="button" class="btn btn-dashed" id="add-person">＋ 新增家人</button>
+
+          <fieldset class="field">
+            <legend>小區 <em>*</em> <small>（全家共用）</small></legend>
+            <div class="chips">
+              <label class="chip"><input type="radio" name="area" value="霧峰" required><span>霧峰</span></label>
+              <label class="chip"><input type="radio" name="area" value="朝陽"><span>朝陽</span></label>
+              <label class="chip"><input type="radio" name="area" value="其他"><span>其他</span></label>
+            </div>
+            <input type="text" name="areaOther" class="area-other" maxlength="20" placeholder="請填寫小區名稱（選填）" hidden>
+          </fieldset>
+
+          <label class="field">
+            <span>備註</span>
+            <textarea name="note" rows="3" maxlength="200" placeholder="例如：飲食需求、與誰同行⋯⋯"></textarea>
+          </label>
+
+          <p class="form-error" id="form-error" role="alert"></p>
+          <button type="submit" class="btn btn-primary btn-block">送出報名</button>
+        </form>
+
+        <div class="card success" id="register-success" hidden>
+          <div class="success-icon">🎉</div>
+          <h3>報名成功！</h3>
+          <p class="success-names" id="success-names"></p>
+          <p>你的修改碼是</p>
+          <p class="code" id="success-code"></p>
+          <p class="hint">請記下這組數字。換手機或電腦時，用「任一位家人的姓名＋修改碼」就能登入並更換桌次。</p>
+          <div class="success-actions">
+            <a href="#tables" class="btn btn-primary">前往選桌</a>
+            <button type="button" class="btn btn-ghost" id="register-another">再報名另一組</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 選桌 -->
+    <section id="tables" class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="step">STEP 2</span>
+          <h2>選擇你的座位</h2>
+          <p>點選桌子可以看到目前坐在那桌的人，每桌最多 <strong id="capacity-text">10</strong> 位（含桌長）。</p>
+        </div>
+
+        <div class="my-status card" id="my-status"></div>
+
+        <div class="legend">
+          <span><i class="dot dot-captain"></i>桌長</span>
+          <span><i class="dot dot-taken"></i>已入座</span>
+          <span><i class="dot dot-empty"></i>空位</span>
+          <span><i class="dot dot-mine"></i>我的座位</span>
+        </div>
+
+        <div class="table-grid" id="table-grid">
+          <p class="loading">座位載入中⋯⋯</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>願主祝福每一張桌子，滿了感恩與喜樂。</p>
+  </footer>
+
+  <!-- 桌子詳情 -->
+  <dialog class="modal" id="table-modal">
+    <form method="dialog"><button class="modal-close" aria-label="關閉">×</button></form>
+    <div id="table-modal-body"></div>
+  </dialog>
+
+  <!-- 用修改碼登入 -->
+  <dialog class="modal" id="login-modal">
+    <form method="dialog"><button class="modal-close" aria-label="關閉">×</button></form>
+    <h3>已報名？登入以更換桌次</h3>
+    <form class="form" id="login-form">
+      <label class="field"><span>姓名（任一位家人皆可）</span><input type="text" name="name" required></label>
+      <label class="field"><span>修改碼</span><input type="text" name="code" inputmode="numeric" maxlength="4" required></label>
+      <p class="form-error" id="login-error" role="alert"></p>
+      <button type="submit" class="btn btn-primary btn-block">登入</button>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
