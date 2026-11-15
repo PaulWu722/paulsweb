@@ -317,6 +317,88 @@
       </div>`;
   }
 
+  /** 主題色調淡化（做接龍圖卡底色） */
+  const tint = (hex, k) => {
+    const n = parseInt(hex.slice(1), 16);
+    const mix = (c) => Math.round(c + (255 - c) * k).toString(16).padStart(2, '0');
+    return '#' + mix(n >> 16) + mix((n >> 8) & 255) + mix(n & 255);
+  };
+  const ROLL_MAX = 60; // Flex 訊息有大小上限，太多人時只列前面
+
+  /** 接龍圖卡：標題、時間地點截止、目前人數、編號名單、「我也要登記」 */
+  function buildRollFlex(ev, list) {
+    const t = themeOf(ev.theme);
+    const url = shareUrl(ev.id);
+    const qs = ev.questions || [];
+    const kv = (k, v, action) => ({
+      type: 'box', layout: 'baseline', spacing: 'md', ...(action ? { action } : {}),
+      contents: [
+        { type: 'text', text: k, size: 'sm', color: '#6b7280', flex: 0 },
+        { type: 'text', text: v, size: 'sm', color: action ? t.c1 : '#1f2937', wrap: true, flex: 1, ...(action ? { decoration: 'underline' } : {}) },
+      ],
+    });
+    const info = [kv('時間', fmtRange(ev.startAt, ev.endAt) || '未定')];
+    if (ev.location) info.push(kv('地點', `${ev.location} 📍`, { type: 'uri', label: '地圖', uri: ev.mapUrl || mapsSearch(ev.location) }));
+    if (ev.deadlineAt) info.push(kv('截止', fmtDT(ev.deadlineAt)));
+    const cap = Number(ev.capacity) || 0;
+    const shown = list.slice(0, ROLL_MAX);
+    const rows = shown.map((r, i) => ({
+      type: 'box', layout: 'baseline', spacing: 'md', contents: [
+        { type: 'text', text: `${i + 1}.`, size: 'md', color: t.c1, weight: 'bold', flex: 0, align: 'end' },
+        { type: 'text', text: lineText(r, qs), size: 'md', color: '#1f2937', wrap: true, flex: 1 },
+      ],
+    }));
+    if (list.length > shown.length) rows.push({ type: 'text', text: `…還有 ${list.length - shown.length} 位，點下方按鈕看完整名單`, size: 'sm', color: '#6b7280', wrap: true });
+    if (!rows.length) rows.push({ type: 'text', text: '還沒有人登記', size: 'sm', color: '#6b7280' });
+    const st = statusOf(ev);
+    const open = st.key === 'open';
+    return {
+      type: 'flex',
+      altText: `📋 ${ev.title}｜目前 ${ev.total} 人${cap ? ` / ${cap}` : ''}`.slice(0, 400),
+      contents: {
+        type: 'bubble', size: 'mega',
+        body: { type: 'box', layout: 'vertical', backgroundColor: tint(t.c1, 0.94), paddingAll: '20px', spacing: 'sm', contents: [
+          { type: 'text', text: ev.title, size: 'xl', weight: 'bold', color: '#1f2937', wrap: true },
+          { type: 'box', layout: 'vertical', spacing: 'xs', margin: 'md', contents: info },
+          { type: 'text', text: `目前 ${ev.total} 人${cap ? ` / 名額 ${cap} 人` : ''}${open ? '' : `（${st.text}）`}`, size: 'sm', color: '#6b7280', margin: 'lg' },
+          { type: 'separator', margin: 'lg', color: tint(t.c1, 0.75) },
+          { type: 'box', layout: 'vertical', spacing: 'sm', margin: 'lg', contents: rows },
+        ] },
+        footer: { type: 'box', layout: 'horizontal', spacing: 'md', backgroundColor: tint(t.c1, 0.94), paddingAll: '16px', contents: [
+          { type: 'box', layout: 'vertical', width: '5px', backgroundColor: t.c2, cornerRadius: '3px', contents: [{ type: 'filler' }] },
+          { type: 'button', style: 'primary', color: t.c1, height: 'md', flex: 1,
+            action: { type: 'uri', label: open ? (list.length ? '我也要登記' : (ev.buttonText || '我要登記')).slice(0, 20) : '查看活動', uri: url } },
+        ] },
+        styles: { footer: { separator: false } },
+      },
+    };
+  }
+
+  /** 把訊息貼到「開啟這個頁面的聊天室」；不在聊天室裡就改用分享選單 */
+  async function postToChat(msg) {
+    if (state.liffReady && liff.isInClient()) {
+      const ctx = liff.getContext && liff.getContext();
+      if (ctx && ['utou', 'group', 'room', 'square_chat'].includes(ctx.type)) {
+        try { await liff.sendMessages([msg]); return 'sent'; } catch (e) { console.warn('sendMessages failed', e); }
+      }
+    }
+    if (state.liffReady && liff.isApiAvailable('shareTargetPicker')) {
+      try { const r = await liff.shareTargetPicker([msg]); return r ? 'shared' : 'cancel'; } catch (e) { console.warn(e); }
+    }
+    return 'unavailable';
+  }
+
+  async function postRoll(id) {
+    const { event, list } = await api('getEvent', { id });
+    const r = await postToChat(buildRollFlex(event, list));
+    if (r === 'sent' || r === 'shared') toast('已把最新接龍貼到聊天室 📋');
+    else if (r === 'unavailable') {
+      const text = [`【${event.title}】目前 ${event.total} 人`, ...list.map((x, i) => `${i + 1}. ${lineText(x, event.questions)}`), shareUrl(event.id)].join('\n');
+      try { await navigator.clipboard.writeText(text); toast('這裡無法直接貼到聊天室，已複製接龍文字'); } catch { /* ignore */ }
+    }
+    return r;
+  }
+
   async function shareEvent(ev) {
     try {
       if (state.liffReady && liff.isApiAvailable('shareTargetPicker')) {
@@ -840,12 +922,19 @@
           ${askPhone ? field('電話', `<input name="phone" type="tel" inputmode="tel" maxlength="20" value="${esc(myReg?.phone || pv.phone || '')}" placeholder="09xx-xxx-xxx">`, { hint: '只有主辦人看得到' }) : ''}
           ${qs.map((q) => questionInput(q, ans(q))).join('')}
         </fieldset>
+        ${canSubmit ? `
+        <label class="switch-row">
+          <span><b>登記後貼出最新接龍</b><small>把累積名單的圖卡貼回聊天室，大家一看就知道誰報了</small></span>
+          <input type="checkbox" id="auto-roll" ${localStorage.getItem('auto-roll') === '0' ? '' : 'checked'}>
+          <span class="switch"></span>
+        </label>` : ''}
         ${myReg ? '<button class="btn-text danger" type="button" id="cancel">取消登記</button>' : ''}
       </form>
 
       <section class="card">
         <h2 class="card-title">接龍名單 <span class="muted">${list.length} 筆 · ${ev.total} 人</span></h2>
-        ${list.length ? `<ol class="roll">${list.map((r) => `<li>${esc(lineText(r, qs))}</li>`).join('')}</ol>` : '<p class="hint">還沒有人登記，成為第一個吧！</p>'}
+        ${list.length ? `<ol class="roll" style="--t1:${t.c1}">${list.map((r) => `<li>${esc(lineText(r, qs))}</li>`).join('')}</ol>` : '<p class="hint">還沒有人登記，成為第一個吧！</p>'}
+        ${list.length ? `<button class="btn btn-ghost" id="post-roll">${ICON.send}把最新接龍貼到聊天室</button>` : ''}
       </section>`;
 
     setBar(canSubmit ? `<button class="btn" type="button" id="submit" style="--btn:${t.c1}">${esc(myReg ? '更新登記資料' : (ev.buttonText || '我要登記'))}</button>` : '');
@@ -865,9 +954,16 @@
       const miss = qs.find((q) => q.type === 'select' && !reg.answers[q.id]);
       if (miss) return toast(`請選擇「${miss.label}」`);
       busy(submit, true, '送出中…');
-      try { await api('register', { id, reg }); toast(myReg ? '已更新登記' : '登記成功 🎉'); router(); }
-      catch (err) { toast(err.message); busy(submit, false); }
+      const autoRoll = document.getElementById('auto-roll')?.checked;
+      localStorage.setItem('auto-roll', autoRoll ? '1' : '0');
+      try { await api('register', { id, reg }); }
+      catch (err) { toast(err.message); busy(submit, false); return; }
+      toast(myReg ? '已更新登記' : '登記成功 🎉');
+      if (autoRoll) { busy(submit, true, '貼出接龍中…'); try { await postRoll(id); } catch (e) { console.warn(e); } }
+      router();
     };
+    const pr = document.getElementById('post-roll');
+    if (pr) pr.onclick = async () => { busy(pr, true, '準備中…'); try { await postRoll(id); } catch (e) { toast(e.message); } busy(pr, false); };
     const c = document.getElementById('cancel');
     if (c) c.onclick = async () => {
       if (!confirm('確定要取消登記嗎？')) return;
