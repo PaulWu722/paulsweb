@@ -250,3 +250,5 @@ a { color: var(--accent); text-decoration: none; }
 
 .captain.tbd { color: var(--muted); font-weight: 600; font-size: 0.9rem; }
 .admin-link { color: var(--muted); font-size: 0.85rem; text-decoration: underline; }
+.dup-hint { color: var(--muted); font-size: 0.9rem; }
+.link-btn { border: 0; background: none; color: var(--accent); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; padding: 0; }

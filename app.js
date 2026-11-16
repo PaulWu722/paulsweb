@@ -299,6 +299,10 @@
       $('#register').scrollIntoView({ behavior: 'smooth' });
     } catch (e2) {
       errEl.textContent = e2.message;
+      if (/已經報名/.test(e2.message)) {
+        errEl.insertAdjacentHTML('beforeend',
+          '<br><span class="dup-hint">如要查看或更換桌次，請 <button type="button" class="link-btn" data-action="login">用姓名＋修改碼登入</button>；忘記修改碼請洽同工。</span>');
+      }
     } finally {
       btn.disabled = false;
       btn.textContent = label;

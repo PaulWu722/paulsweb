@@ -41,6 +41,9 @@ create table if not exists public.feast_people (
 alter table public.feast_people alter column gender drop not null;
 alter table public.feast_people alter column role drop not null;
 
+-- 同名只能報名一次（若真有兩位同名，請在姓名後加註區分，例如「王小明（朝陽）」）
+create unique index if not exists feast_people_name_uniq on public.feast_people (btrim(name));
+
 create index if not exists feast_people_family_idx on public.feast_people (family_id);
 create index if not exists feast_families_table_idx on public.feast_families (table_no);
 
@@ -124,6 +127,7 @@ declare
   v_who text;
   v_area text;
   v_family uuid;
+  v_dup text;
   v_code text := (1000 + floor(random() * 9000))::int::text;
 begin
   if p_members is null or jsonb_typeof(p_members) <> 'array' then
@@ -153,6 +157,24 @@ begin
     when p_area = '其他' and btrim(coalesce(p_area_other, '')) <> ''
       then '其他（' || left(btrim(p_area_other), 20) || '）'
     else p_area end;
+
+  -- 防止重複報名（同時有人送出時依序處理）
+  perform pg_advisory_xact_lock(hashtext('feast_register'));
+
+  select x.n into v_dup
+  from (select left(btrim(e->>'name'), 30) as n from jsonb_array_elements(p_members) e) x
+  group by x.n having count(*) > 1 limit 1;
+  if v_dup is not null then
+    raise exception '「%」在這次報名中填寫了兩次', v_dup;
+  end if;
+
+  select string_agg(p.name || '（' || coalesce('第 ' || f.table_no || ' 桌', '尚未安排桌次') || '）', '、' order by f.created_at)
+  into v_dup
+  from feast_people p join feast_families f on f.id = p.family_id
+  where btrim(p.name) in (select left(btrim(e->>'name'), 30) from jsonb_array_elements(p_members) e);
+  if v_dup is not null then
+    raise exception '你已經報名過了：%', v_dup;
+  end if;
 
   insert into feast_families (code, area, note)
   values (v_code, v_area, left(btrim(coalesce(p_note, '')), 200))

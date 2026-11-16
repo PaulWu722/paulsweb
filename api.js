@@ -103,6 +103,14 @@
           if (!ROLES.includes(m.role)) throw new Error(`請選擇${who || m.name}的身分`);
         });
         if (!AREAS.includes(d.area)) throw new Error('請選擇小區');
+        const names = list.map((m) => String(m.name).trim());
+        const twice = names.find((n, i) => names.indexOf(n) !== i);
+        if (twice) throw new Error(`「${twice}」在這次報名中填寫了兩次`);
+        const dup = names.map((n) => db.people.find((q) => q.name === n)).filter(Boolean);
+        if (dup.length) {
+          const where = dup.map((q) => `${q.name}（${q.table ? `第 ${q.table} 桌` : '尚未安排桌次'}）`).join('、');
+          throw new Error(`你已經報名過了：${where}`);
+        }
         const other = String(d.areaOther || '').trim();
         const area = d.area === '其他' && other ? `其他（${other}）` : d.area;
         const group = Math.random().toString(36).slice(2, 12);
