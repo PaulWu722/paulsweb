@@ -23,6 +23,14 @@ const THEMES = ['classic', 'feast', 'prayer', 'gospel', 'youth', 'kids', 'bible'
 const REMINDERS = ['7d', '24h', '1h'];
 const MAX_COMPANIONS = 10;
 
+// 小排福音代禱牆
+const PRAY_WALL = 'main';
+const PRAY_TITLE = '小排福音代禱牆';
+const PRAY_GROUPS = [
+  '北溝社區排', '德福排', '讀經小排', '霧峰姊妹排', '兒童排', '青職排', '七靈社區排', '青少年排', '草湖亞洲排',
+  '🏠大專週三李家排', '🏠大專週三弟兄排', '🏠大專週四姊妹排', '🏠大專週四弟兄排', '🏠大專週五朝陽排', '🏠大專週五姊妹排',
+];
+
 // ---------- LINE ID Token 驗證（同一個 instance 內快取） ----------
 const tokenCache = new Map<string, { user: User; exp: number }>();
 async function verifyIdToken(idToken?: string): Promise<User> {
@@ -146,6 +154,19 @@ async function getProfile(userId: string) {
     ?? { name: '', phone: '', answers: {} };
 }
 
+async function wallView(u: User) {
+  const rows = must(await db.from('prayer_entries').select('id, group_name, name, user_id')
+    .eq('wall', PRAY_WALL).order('created_at')) as Row[];
+  return {
+    title: PRAY_TITLE,
+    total: rows.length,
+    groups: PRAY_GROUPS.map((g) => ({
+      name: g,
+      entries: rows.filter((r) => r.group_name === g).map((r) => ({ id: r.id, name: r.name, mine: r.user_id === u.userId })),
+    })),
+  };
+}
+
 // ---------- 動作 ----------
 const actions: Record<string, (b: Row, u: User) => Promise<unknown>> = {
   async createEvent(b, u) {
@@ -262,6 +283,25 @@ const actions: Record<string, (b: Row, u: User) => Promise<unknown>> = {
       user_id: u.userId, name: clip(p.name, 30), phone: clip(p.phone, 20), answers, updated_at: new Date().toISOString(),
     }));
     return {};
+  },
+
+  async getWall(_b, u) { return wallView(u); },
+
+  async addPrayer(b, u) {
+    const group = String(b.group ?? '');
+    if (!PRAY_GROUPS.includes(group)) throw new UserError('請選擇小排');
+    const names = [...new Set((Array.isArray(b.names) ? b.names : []).map((n) => clip(n, 20)).filter(Boolean))].slice(0, 30);
+    if (!names.length) throw new UserError('請填寫要代禱的名字');
+    must(await db.from('prayer_entries').upsert(
+      names.map((name) => ({ wall: PRAY_WALL, group_name: group, name, user_id: u.userId, display_name: u.displayName })),
+      { onConflict: 'wall,group_name,name', ignoreDuplicates: true },
+    ));
+    return wallView(u);
+  },
+
+  async removePrayer(b, u) {
+    must(await db.from('prayer_entries').delete().eq('id', Number(b.id)).eq('user_id', u.userId).eq('wall', PRAY_WALL));
+    return wallView(u);
   },
 
   async uploadImage(b) {

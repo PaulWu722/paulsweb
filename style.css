@@ -426,3 +426,36 @@ fieldset:disabled { opacity: .55; }
 .roll li::marker { color: var(--t1, var(--faint)); }
 #rf .switch-row { margin-top: 16px; }
 .card .roll + .btn-ghost { margin-top: 14px; }
+
+/* ================= 小排福音代禱牆 ================= */
+.pray-tile { display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin: 4px 0 14px; border-radius: var(--r-lg); background: linear-gradient(135deg, #2c4f8a, #3d67ad); color: #fff; box-shadow: 0 8px 20px rgba(44,79,138,.25); }
+.pray-tile > span { font-size: 28px; }
+.pray-tile div { flex: 1; min-width: 0; }
+.pray-tile b { display: block; font-size: 16px; }
+.pray-tile small { display: block; font-size: 12px; opacity: .85; }
+.pray-tile svg { opacity: .8; }
+.pray-tile:active { transform: scale(.99); }
+.pray-hero { position: relative; overflow: hidden; padding: 22px 20px 18px; margin-bottom: 14px; border-radius: var(--r-lg); color: #fff; text-align: center; background: linear-gradient(150deg, #3d67ad 0%, #2c4f8a 55%, #1f3a68 100%); box-shadow: 0 12px 28px rgba(44,79,138,.28); }
+.pray-hero::after { content: ""; position: absolute; left: -50px; top: -70px; width: 200px; height: 200px; border-radius: 50%; background: rgba(157,183,224,.18); }
+.pray-emoji { position: relative; z-index: 1; font-size: 36px; }
+.pray-hero h1 { position: relative; z-index: 1; font-size: 22px; font-weight: 800; margin: 4px 0; }
+.pray-hero p { position: relative; z-index: 1; margin: 0; font-size: 14px; opacity: .9; }
+.stats.light { position: relative; z-index: 1; border-top-color: rgba(255,255,255,.2); }
+.stats.light div + div { border-left-color: rgba(255,255,255,.2); }
+.stats.light b { color: #fff; }
+.stats.light span { color: rgba(255,255,255,.8); }
+.group-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.group-chip { position: relative; min-height: 46px; padding: 8px 10px; border: 0; border-radius: var(--r-sm); background: #f3f5f7; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink-2); text-align: left; line-height: 1.3; cursor: pointer; box-shadow: inset 0 0 0 1.5px transparent; }
+.group-chip em { font-style: normal; font-size: 11px; font-weight: 800; color: #2c4f8a; background: #e6edf8; padding: 1px 6px; border-radius: 99px; margin-left: 4px; }
+.group-chip.on { background: #e9f0fb; color: #1f3a68; box-shadow: inset 0 0 0 2px #2c4f8a; font-weight: 800; }
+.pray-group { padding: 12px 0; border-bottom: 1px solid #f1f2f3; }
+.pray-group:last-of-type { border-bottom: 0; }
+.pray-group-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.pray-group-head b { font-size: 15px; color: #1f3a68; }
+.pray-group-head span { font-size: 12px; color: var(--faint); flex-shrink: 0; }
+.pray-group.empty .pray-group-head b { color: var(--muted); font-weight: 600; }
+.name-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.name-chip { display: inline-flex; align-items: center; gap: 2px; height: 32px; padding: 0 12px; border-radius: 99px; background: #eef2f8; font-size: 14px; color: var(--ink); }
+.name-chip.mine { background: #e1eaf8; padding-right: 4px; }
+.name-chip button { width: 26px; height: 26px; border: 0; border-radius: 50%; background: none; color: #6b7a93; display: grid; place-items: center; cursor: pointer; }
+.name-chip button svg { width: 14px; height: 14px; }
