@@ -1054,39 +1054,65 @@
   const PRAY_CARD_MAX = 40; // 每排在圖卡上最多列幾位
 
   function buildWallFlex(wall) {
-    const t = PRAY_THEME;
     const filled = wall.groups.filter((g) => g.entries.length);
     const empty = wall.groups.filter((g) => !g.entries.length);
-    const sections = [];
-    filled.forEach((g, i) => {
-      const names = g.entries.map((e) => e.name);
-      const shown = names.slice(0, PRAY_CARD_MAX).join('、') + (names.length > PRAY_CARD_MAX ? `…等 ${names.length} 位` : '');
-      if (i) sections.push({ type: 'separator', margin: 'md', color: tint(t.c1, 0.85) });
-      sections.push({ type: 'box', layout: 'vertical', spacing: 'xs', margin: 'md', contents: [
-        { type: 'text', text: `${g.name}（${names.length}）`, size: 'sm', weight: 'bold', color: t.c1, wrap: true },
-        { type: 'text', text: shown, size: 'sm', color: '#1f2937', wrap: true },
-      ] });
+    const BG = '#F3F6FB';
+    // 大專排用青綠色，其他排用藍色，一眼分得出來
+    const accent = (name) => (name.startsWith('🏠') ? '#1d8a8a' : '#3460a8');
+    const stat = (num, label) => ({
+      type: 'box', layout: 'vertical', backgroundColor: '#FFFFFF1F', cornerRadius: '10px', paddingAll: '8px', contents: [
+        { type: 'text', text: String(num), size: 'xl', weight: 'bold', color: '#FFFFFF', align: 'center' },
+        { type: 'text', text: label, size: 'xxs', color: '#FFFFFFCC', align: 'center' },
+      ],
     });
-    if (!filled.length) sections.push({ type: 'text', text: '還沒有人填寫，成為第一個吧！', size: 'sm', color: '#6b7280' });
+    const groupCard = (g) => {
+      const c = accent(g.name);
+      const names = g.entries.map((e) => e.name);
+      const shown = names.slice(0, PRAY_CARD_MAX).join(' · ') + (names.length > PRAY_CARD_MAX ? `　…等 ${names.length} 位` : '');
+      return {
+        type: 'box', layout: 'vertical', backgroundColor: '#FFFFFF', cornerRadius: '12px', paddingAll: '12px', spacing: 'sm', contents: [
+          { type: 'box', layout: 'horizontal', alignItems: 'center', contents: [
+            { type: 'box', layout: 'vertical', width: '4px', height: '16px', backgroundColor: c, cornerRadius: '2px', contents: [{ type: 'filler' }] },
+            { type: 'text', text: g.name, size: 'sm', weight: 'bold', color: '#1f2a44', flex: 1, margin: 'md', wrap: true },
+            { type: 'box', layout: 'vertical', flex: 0, backgroundColor: tint(c, 0.86), cornerRadius: '10px', paddingStart: '8px', paddingEnd: '8px', paddingTop: '2px', paddingBottom: '2px', contents: [
+              { type: 'text', text: `${names.length} 位`, size: 'xxs', weight: 'bold', color: c },
+            ] },
+          ] },
+          { type: 'text', text: shown, size: 'sm', color: '#374151', wrap: true },
+        ],
+      };
+    };
+    const cards = filled.length ? filled.map(groupCard) : [{
+      type: 'box', layout: 'vertical', backgroundColor: '#FFFFFF', cornerRadius: '12px', paddingAll: '16px',
+      contents: [{ type: 'text', text: '還沒有人填寫，成為第一個吧！', size: 'sm', color: '#6b7280', align: 'center' }],
+    }];
     if (empty.length) {
-      sections.push({ type: 'separator', margin: 'lg', color: tint(t.c1, 0.85) });
-      sections.push({ type: 'text', text: `還沒填的排：${empty.map((g) => g.name).join('、')}`, size: 'xs', color: '#6b7280', wrap: true, margin: 'md' });
+      cards.push({ type: 'box', layout: 'vertical', paddingStart: '4px', paddingEnd: '4px', paddingTop: '4px', spacing: 'xs', contents: [
+        { type: 'text', text: `⏳ 還沒填的排（${empty.length}）`, size: 'xs', weight: 'bold', color: '#6b7280' },
+        { type: 'text', text: empty.map((g) => g.name).join('、'), size: 'xs', color: '#9ca3af', wrap: true },
+      ] });
     }
     return {
       type: 'flex',
-      altText: `🙏 ${wall.title}｜共 ${wall.total} 位`,
+      altText: `🙏 ${wall.title}｜${filled.length} 個排、共 ${wall.total} 位福音朋友`,
       contents: {
-        type: 'bubble', size: 'mega',
+        type: 'bubble', size: 'giga',
         body: { type: 'box', layout: 'vertical', paddingAll: '0px', contents: [
-          { type: 'box', layout: 'vertical', backgroundColor: t.c1, paddingAll: '18px', spacing: 'xs', contents: [
-            { type: 'text', text: '🙏 代禱牆', size: 'xs', color: t.c2, weight: 'bold' },
-            { type: 'text', text: wall.title, size: 'xl', color: '#FFFFFF', weight: 'bold', wrap: true },
-            { type: 'text', text: `共 ${wall.total} 位福音朋友 · ${filled.length} 個排已填寫`, size: 'xs', color: '#FFFFFFCC' },
-          ] },
-          { type: 'box', layout: 'vertical', backgroundColor: tint(t.c1, 0.95), paddingAll: '18px', contents: sections },
+          { type: 'box', layout: 'vertical', paddingAll: '20px', spacing: 'xs',
+            background: { type: 'linearGradient', angle: '135deg', startColor: '#4570b8', endColor: '#1f3a68' },
+            contents: [
+              { type: 'text', text: '🙏 同心代禱', size: 'xs', weight: 'bold', color: '#f5c96a' },
+              { type: 'text', text: wall.title, size: 'xl', weight: 'bold', color: '#FFFFFF', wrap: true },
+              { type: 'text', text: '「第一要為萬人懇求、禱告、代求、祝謝。」提前 2:1', size: 'xxs', color: '#FFFFFFB3', wrap: true, margin: 'sm' },
+              { type: 'box', layout: 'horizontal', spacing: 'sm', margin: 'lg', contents: [
+                stat(wall.total, '位福音朋友'), stat(filled.length, '個排已填'), stat(empty.length, '個排未填'),
+              ] },
+            ] },
+          { type: 'box', layout: 'vertical', backgroundColor: BG, paddingAll: '14px', spacing: 'sm', contents: cards },
         ] },
-        footer: { type: 'box', layout: 'vertical', backgroundColor: tint(t.c1, 0.95), paddingAll: '14px', contents: [
-          { type: 'button', style: 'primary', color: t.c1, height: 'md', action: { type: 'uri', label: '我也要填代禱名單', uri: prayUrl() } },
+        footer: { type: 'box', layout: 'vertical', backgroundColor: BG, paddingStart: '14px', paddingEnd: '14px', paddingBottom: '16px', paddingTop: '0px', spacing: 'sm', contents: [
+          { type: 'button', style: 'primary', color: '#2c4f8a', height: 'md', action: { type: 'uri', label: '🙏 我也要填代禱名單', uri: prayUrl() } },
+          { type: 'text', text: '點按鈕，加入你正在為他禱告的福音朋友', size: 'xxs', color: '#9ca3af', align: 'center' },
         ] },
         styles: { footer: { separator: false } },
       },
