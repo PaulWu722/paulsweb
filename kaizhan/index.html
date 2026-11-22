@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>南三照顧區・開展週 配搭回條</title>
+<meta property="og:title" content="南三照顧區・開展週 配搭回條">
+<meta property="og:description" content="11/26–11/29 一同出去傳揚福音！點此填寫配搭時段。">
+<style>
+  :root{--c:#c4552b;--bg:#fbf6f2;--line:#e8d9cf}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;background:var(--bg);color:#333;line-height:1.6}
+  .wrap{max-width:560px;margin:0 auto;padding:20px 16px 40px}
+  h1{color:var(--c);font-size:1.45rem;text-align:center;margin:8px 0 2px}
+  h1 small{color:#333;font-size:1rem;margin-left:6px}
+  .verse{text-align:center;font-style:italic;color:#777;font-size:.88rem;border-bottom:2px solid var(--c);padding-bottom:10px;margin-bottom:14px}
+  .card{background:#fff;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .info b{color:var(--c)}
+  label.f{display:block;font-weight:700;margin:4px 0 6px}
+  input[type=text],input[type=number],textarea{width:100%;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+  textarea{min-height:70px;resize:vertical}
+  .req{color:var(--c)}
+  table{width:100%;border-collapse:collapse;margin-top:4px}
+  th,td{border:1px solid var(--line);text-align:center;padding:8px 4px}
+  th{background:#f6e6dc;font-size:.9rem}
+  td:first-child{font-weight:700}
+  .tick{display:inline-flex;width:44px;height:44px;align-items:center;justify-content:center;cursor:pointer}
+  .tick input{width:24px;height:24px;accent-color:var(--c)}
+  .hint{font-size:.85rem;color:#888;margin-top:6px}
+  .opt{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:1rem}
+  .opt input[type=checkbox]{width:22px;height:22px;accent-color:var(--c)}
+  .opt input[type=number]{width:80px}
+  button{width:100%;font-size:1.1rem;padding:14px;border:0;border-radius:12px;background:var(--c);color:#fff;font-weight:700}
+  button:disabled{opacity:.6}
+  .err{color:#b00020;margin:8px 0;display:none}
+  .done{text-align:center;padding:30px 16px}
+  .done h2{color:var(--c)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>南三照顧區・開展週<small>配搭回條</small></h1>
+  <div class="verse">「你們往普天下去，向一切受造之物傳揚福音。」（可十六 15）</div>
+
+  <div id="formArea">
+  <div class="card info">
+    弟兄姊妹平安！就在下週，南三照顧區要一同出去傳揚福音，邀請大家一起配搭、同心興旺福音！<br>
+    <b>開展週</b> 11/26（四）～11/29（日）<br>
+    <b>福音聚會</b> 11/29（日）18:00–20:00（含晚餐）<br>
+    <b>地點</b> 樹仁會所（臺中市霧峰區本堂里樹仁路 89 號）
+  </div>
+
+  <form id="f" class="card" novalidate>
+    <label class="f" for="name">姓名 <span class="req">*</span></label>
+    <input type="text" id="name" maxlength="50" autocomplete="name">
+    <label class="f" for="group" style="margin-top:12px">所屬小排</label>
+    <input type="text" id="group" maxlength="50">
+
+    <label class="f" style="margin-top:16px">出外開展（請勾選）</label>
+    <table>
+      <tr><th>日期</th><th>中午<br>11:00–12:00</th><th>下午<br>5:00–6:00</th></tr>
+      <tr><td>11/26（四）</td><td><label class="tick"><input type="checkbox" name="slot" value="1126_noon"></label></td><td><label class="tick"><input type="checkbox" name="slot" value="1126_pm"></label></td></tr>
+      <tr><td>11/27（五）</td><td><label class="tick"><input type="checkbox" name="slot" value="1127_noon"></label></td><td><label class="tick"><input type="checkbox" name="slot" value="1127_pm"></label></td></tr>
+      <tr><td>11/28（六）</td><td><label class="tick"><input type="checkbox" name="slot" value="1128_noon"></label></td><td><label class="tick"><input type="checkbox" name="slot" value="1128_pm"></label></td></tr>
+    </table>
+    <div class="hint">歡迎選一個時段加入，一次也好，一同出去結果子！</div>
+
+    <label class="f" style="margin-top:16px">福音聚會 11/29（日）</label>
+    <label class="opt"><input type="checkbox" id="attend"> 我會參加</label>
+    <label class="opt"><input type="checkbox" id="bring"> 我會帶福音朋友
+      <input type="number" id="count" min="1" max="50" inputmode="numeric" placeholder="人數" disabled> 位</label>
+
+    <label class="f" for="pray" style="margin-top:12px">為福音朋友禱告（名字）</label>
+    <textarea id="pray" maxlength="300" placeholder="可填多位，例如：小明、王阿姨"></textarea>
+
+    <div class="err" id="err"></div>
+    <button type="submit" id="btn" style="margin-top:16px">送出回條</button>
+    <div class="hint" style="text-align:center">請在禱告中記念這次開展 🙏</div>
+  </form>
+  </div>
+
+  <div id="doneArea" class="card done" style="display:none">
+    <h2>已收到，感謝主！</h2>
+    <p id="doneMsg"></p>
+    <p>請在禱告中記念這次開展，<br>我們 11/29 樹仁會所見！</p>
+  </div>
+</div>
+<script>
+const SB_URL = "https://gserdnkovlwfdgcaguqe.supabase.co";
+const SB_KEY = "sb_publishable_OkPLiqg_-Jnu1ywt8j-o0A_R_BFyIZN";
+const $ = id => document.getElementById(id);
+$("bring").addEventListener("change", e => { $("count").disabled = !e.target.checked; if (e.target.checked) $("count").focus(); else $("count").value = ""; });
+$("f").addEventListener("submit", async e => {
+  e.preventDefault();
+  const err = $("err"); err.style.display = "none";
+  const name = $("name").value.trim();
+  if (!name) { err.textContent = "請填寫姓名"; err.style.display = "block"; $("name").focus(); return; }
+  const slots = [...document.querySelectorAll('input[name=slot]:checked')].map(x => x.value);
+  const bring = $("bring").checked;
+  const count = bring ? parseInt($("count").value, 10) || null : null;
+  const body = { name, group_name: $("group").value.trim() || null, slots,
+    attend: $("attend").checked, bring_friends: bring, friend_count: count,
+    pray_names: $("pray").value.trim() || null };
+  $("btn").disabled = true; $("btn").textContent = "送出中…";
+  try {
+    const r = await fetch(SB_URL + "/rest/v1/kz_responses", { method: "POST",
+      headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY, "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify(body) });
+    if (!r.ok) throw new Error(await r.text());
+    $("doneMsg").textContent = name + "，你勾選了 " + slots.length + " 個開展時段" + (body.attend ? "，並會參加福音聚會" : "") + "。";
+    $("formArea").style.display = "none"; $("doneArea").style.display = "block"; window.scrollTo(0, 0);
+  } catch (x) {
+    err.textContent = "送出失敗，請稍後再試一次。"; err.style.display = "block";
+    $("btn").disabled = false; $("btn").textContent = "送出回條";
+  }
+});
+</script>
+</body>
+</html>
