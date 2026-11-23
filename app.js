@@ -212,7 +212,7 @@
         const ids = db.regs.filter((r) => r.userId === me.userId && r.status === 'active').map((r) => r.eventId);
         return { created, joined: db.events.filter((e) => ids.includes(e.id)).map(withCount) };
       }
-      case 'getWall': case 'addPrayer': case 'removePrayer': {
+      case 'getWall': case 'addPrayer': case 'removePrayer': case 'setPrayerStatus': {
         db.prayers = db.prayers || [];
         if (action === 'addPrayer') {
           if (!DEMO_GROUPS.includes(d.group)) throw new Error('請選擇小排');
@@ -221,8 +221,9 @@
           for (const name of names) if (!db.prayers.some((x) => x.group === d.group && x.name === name)) db.prayers.push({ id: Date.now() + Math.random(), group: d.group, name, userId: me.userId });
         }
         if (action === 'removePrayer') db.prayers = db.prayers.filter((x) => !(x.id === d.id && x.userId === me.userId));
+        if (action === 'setPrayerStatus') { const x = db.prayers.find((y) => y.id === d.id); if (!x) throw new Error('找不到這個名字'); x.status = d.status; x.statusBy = me.displayName; }
         save();
-        return { title: '小排福音代禱牆', total: db.prayers.length, groups: DEMO_GROUPS.map((g) => ({ name: g, entries: db.prayers.filter((x) => x.group === g).map((x) => ({ id: x.id, name: x.name, mine: x.userId === me.userId })) })) };
+        return { title: '小排福音代禱牆', total: db.prayers.length, groups: DEMO_GROUPS.map((g) => ({ name: g, entries: db.prayers.filter((x) => x.group === g).map((x) => ({ id: x.id, name: x.name, mine: x.userId === me.userId, status: x.status || 'none', statusBy: x.statusBy || '' })) })) };
       }
       case 'getProfile': return prof();
       case 'saveProfile': db.profiles[me.userId] = d.profile; save(); return {};
@@ -1052,10 +1053,37 @@
 
   // ================= 小排福音代禱牆 =================
   const PRAY_CARD_MAX = 40; // 每排在圖卡上最多列幾位
+  const PRAY_STATUS = {
+    invited: { icon: '💌', label: '已邀約', color: '#d0467a' },
+    coming: { icon: '⭐', label: '答應會來', color: '#b7791f' },
+  };
+  const countStatus = (entries, st) => entries.filter((e) => e.status === st).length;
+
+  /** 底部彈出選單：options = [{ key, label, sub?, danger?, on? }]，回傳選到的 key（取消回傳 null） */
+  function sheet(title, subtitle, options) {
+    return new Promise((resolve) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'sheet-wrap';
+      wrap.innerHTML = `
+        <div class="sheet" role="dialog" aria-label="${esc(title)}">
+          <div class="sheet-head"><b>${esc(title)}</b>${subtitle ? `<small>${esc(subtitle)}</small>` : ''}</div>
+          ${options.map((o) => `<button type="button" class="sheet-opt ${o.danger ? 'danger' : ''} ${o.on ? 'on' : ''}" data-k="${esc(o.key)}">
+            <span>${o.label}</span>${o.sub ? `<small>${esc(o.sub)}</small>` : ''}${o.on ? ICON.check : ''}</button>`).join('')}
+          <button type="button" class="sheet-cancel" data-k="">取消</button>
+        </div>`;
+      const close = (k) => { wrap.classList.remove('show'); setTimeout(() => wrap.remove(), 180); resolve(k || null); };
+      wrap.addEventListener('click', (e) => { const b = e.target.closest('[data-k]'); if (b) close(b.dataset.k); else if (e.target === wrap) close(null); });
+      document.body.appendChild(wrap);
+      requestAnimationFrame(() => wrap.classList.add('show'));
+    });
+  }
 
   function buildWallFlex(wall) {
     const filled = wall.groups.filter((g) => g.entries.length);
     const empty = wall.groups.filter((g) => !g.entries.length);
+    const all = wall.groups.flatMap((g) => g.entries);
+    const totalComing = countStatus(all, 'coming');
+    const totalInvited = countStatus(all, 'invited') + totalComing; // 答應會來的也算已邀約
     const BG = '#F3F6FB';
     // 大專排用青綠色，其他排用藍色，一眼分得出來
     const accent = (name) => (name.startsWith('🏠') ? '#1d8a8a' : '#3460a8');
@@ -1068,17 +1096,28 @@
     const groupCard = (g) => {
       const c = accent(g.name);
       const names = g.entries.map((e) => e.name);
-      const shown = names.slice(0, PRAY_CARD_MAX).join(' · ') + (names.length > PRAY_CARD_MAX ? `　…等 ${names.length} 位` : '');
+      const coming = countStatus(g.entries, 'coming');
+      // 答應會來的排前面、已邀約其次，名字用分段上色
+      const order = { coming: 0, invited: 1, none: 2 };
+      const list = g.entries.slice().sort((a, b) => order[a.status || 'none'] - order[b.status || 'none']).slice(0, PRAY_CARD_MAX);
+      const spans = [];
+      list.forEach((e, i) => {
+        if (i) spans.push({ type: 'span', text: '  ·  ', color: '#c4c9d4' });
+        const st = PRAY_STATUS[e.status];
+        spans.push(st ? { type: 'span', text: `${st.icon}${e.name}`, color: st.color, weight: 'bold' } : { type: 'span', text: e.name, color: '#374151' });
+      });
+      if (names.length > PRAY_CARD_MAX) spans.push({ type: 'span', text: `　…等 ${names.length} 位`, color: '#9ca3af' });
+      const shown = list.map((e) => (PRAY_STATUS[e.status]?.icon || '') + e.name).join(' · ');
       return {
         type: 'box', layout: 'vertical', backgroundColor: '#FFFFFF', cornerRadius: '12px', paddingAll: '12px', spacing: 'sm', contents: [
           { type: 'box', layout: 'horizontal', alignItems: 'center', contents: [
             { type: 'box', layout: 'vertical', width: '4px', height: '16px', backgroundColor: c, cornerRadius: '2px', contents: [{ type: 'filler' }] },
             { type: 'text', text: g.name, size: 'sm', weight: 'bold', color: '#1f2a44', flex: 1, margin: 'md', wrap: true },
             { type: 'box', layout: 'vertical', flex: 0, backgroundColor: tint(c, 0.86), cornerRadius: '10px', paddingStart: '8px', paddingEnd: '8px', paddingTop: '2px', paddingBottom: '2px', contents: [
-              { type: 'text', text: `${names.length} 位`, size: 'xxs', weight: 'bold', color: c },
+              { type: 'text', text: coming ? `⭐${coming} / ${names.length} 位` : `${names.length} 位`, size: 'xxs', weight: 'bold', color: coming ? PRAY_STATUS.coming.color : c },
             ] },
           ] },
-          { type: 'text', text: shown, size: 'sm', color: '#374151', wrap: true },
+          { type: 'text', text: shown, contents: spans, size: 'sm', color: '#374151', wrap: true },
         ],
       };
     };
@@ -1094,7 +1133,7 @@
     }
     return {
       type: 'flex',
-      altText: `🙏 ${wall.title}｜${filled.length} 個排、共 ${wall.total} 位福音朋友`,
+      altText: `🙏 ${wall.title}｜${wall.total} 位福音朋友，⭐${totalComing} 位答應前來`,
       contents: {
         type: 'bubble', size: 'giga',
         body: { type: 'box', layout: 'vertical', paddingAll: '0px', contents: [
@@ -1105,10 +1144,17 @@
               { type: 'text', text: wall.title, size: 'xl', weight: 'bold', color: '#FFFFFF', wrap: true },
               { type: 'text', text: '「第一要為萬人懇求、禱告、代求、祝謝。」提前 2:1', size: 'xxs', color: '#FFFFFFB3', wrap: true, margin: 'sm' },
               { type: 'box', layout: 'horizontal', spacing: 'sm', margin: 'lg', contents: [
-                stat(wall.total, '位福音朋友'), stat(filled.length, '個排已填'), stat(empty.length, '個排未填'),
+                stat(wall.total, '位福音朋友'), stat(totalInvited, '💌 已邀約'), stat(totalComing, '⭐ 答應前來'),
               ] },
             ] },
-          { type: 'box', layout: 'vertical', backgroundColor: BG, paddingAll: '14px', spacing: 'sm', contents: cards },
+          { type: 'box', layout: 'vertical', backgroundColor: BG, paddingAll: '14px', spacing: 'sm', contents: [
+            { type: 'text', size: 'xxs', color: '#6b7280', align: 'end', text: '⭐ 答應會來　💌 已邀約', contents: [
+              { type: 'span', text: '⭐ 答應會來', color: PRAY_STATUS.coming.color, weight: 'bold' },
+              { type: 'span', text: '　　' },
+              { type: 'span', text: '💌 已邀約', color: PRAY_STATUS.invited.color, weight: 'bold' },
+            ] },
+            ...cards,
+          ] },
         ] },
         footer: { type: 'box', layout: 'vertical', backgroundColor: BG, paddingStart: '14px', paddingEnd: '14px', paddingBottom: '16px', paddingTop: '0px', spacing: 'sm', contents: [
           { type: 'button', style: 'primary', color: '#2c4f8a', height: 'md', action: { type: 'uri', label: '🙏 我也要填代禱名單', uri: prayUrl() } },
@@ -1135,6 +1181,9 @@
     const render = () => {
       if (!wall.groups.some((g) => g.name === group)) group = '';
       const filled = wall.groups.filter((g) => g.entries.length).length;
+      const all = wall.groups.flatMap((g) => g.entries);
+      const coming = countStatus(all, 'coming');
+      const invited = countStatus(all, 'invited') + coming;
       $app.innerHTML = `
         <section class="pray-hero">
           <span class="pray-emoji">🙏</span>
@@ -1142,9 +1191,10 @@
           <p>寫下你正在為他禱告的福音朋友，一起同心代禱。</p>
           <div class="stats light">
             <div><b>${wall.total}</b><span>位福音朋友</span></div>
-            <div><b>${filled}</b><span>個排已填寫</span></div>
-            <div><b>${wall.groups.length - filled}</b><span>個排還沒填</span></div>
+            <div><b>${invited}</b><span>💌 已邀約</span></div>
+            <div><b>${coming}</b><span>⭐ 答應前來</span></div>
           </div>
+          <p class="pray-sub">${filled} 個排已填寫，${wall.groups.length - filled} 個排還沒填</p>
         </section>
 
         <form class="card" id="pf" novalidate>
@@ -1170,11 +1220,11 @@
           <h2 class="card-title">各排代禱名單 <span class="muted">共 ${wall.total} 位</span></h2>
           ${wall.groups.map((g) => `
             <div class="pray-group ${g.entries.length ? '' : 'empty'}">
-              <div class="pray-group-head"><b>${esc(g.name)}</b><span>${g.entries.length ? `${g.entries.length} 位` : '還沒有名單'}</span></div>
+              <div class="pray-group-head"><b>${esc(g.name)}</b><span>${g.entries.length ? `${countStatus(g.entries, 'coming') ? `<i class="st-coming">⭐${countStatus(g.entries, 'coming')}</i>` : ''}${countStatus(g.entries, 'invited') ? `<i class="st-invited">💌${countStatus(g.entries, 'invited')}</i>` : ''}${g.entries.length} 位` : '還沒有名單'}</span></div>
               ${g.entries.length ? `<div class="name-chips">${g.entries.map((e) => `
-                <span class="name-chip ${e.mine ? 'mine' : ''}">${esc(e.name)}${e.mine ? `<button type="button" data-del="${esc(e.id)}" aria-label="刪除 ${esc(e.name)}">${ICON.x}</button>` : ''}</span>`).join('')}</div>` : ''}
+                <button type="button" class="name-chip st-${esc(e.status || 'none')}" data-entry="${esc(e.id)}">${PRAY_STATUS[e.status] ? `<span class="st-icon">${PRAY_STATUS[e.status].icon}</span>` : ''}${esc(e.name)}</button>`).join('')}</div>` : ''}
             </div>`).join('')}
-          <p class="hint">你填的名字旁邊有 ✕，可以自己刪除。</p>
+          <p class="hint">點名字可以標記「💌 已邀約」或「⭐ 答應會來」，標記後會自動把最新代禱牆貼到聊天室。</p>
           <button class="btn btn-ghost" id="post-wall">${ICON.send}把代禱牆貼到聊天室</button>
         </section>`;
 
@@ -1182,10 +1232,31 @@
         group = b.dataset.group; localStorage.setItem('pray-group', group);
         $app.querySelectorAll('[data-group]').forEach((x) => x.classList.toggle('on', x === b));
       });
-      $app.querySelectorAll('[data-del]').forEach((b) => b.onclick = async () => {
-        const chip = b.closest('.name-chip');
-        if (!confirm(`要把「${chip.textContent.trim()}」從代禱牆移除嗎？`)) return;
-        try { wall = await api('removePrayer', { id: Number(b.dataset.del) }); toast('已移除'); render(); } catch (err) { toast(err.message); }
+      $app.querySelectorAll('[data-entry]').forEach((b) => b.onclick = async () => {
+        const id = Number(b.dataset.entry);
+        const g = wall.groups.find((x) => x.entries.some((e) => e.id === id));
+        const e = g?.entries.find((x) => x.id === id);
+        if (!e) return;
+        const cur = e.status || 'none';
+        const opts = [
+          { key: 'coming', label: '⭐ 答應會來福音聚會', on: cur === 'coming' },
+          { key: 'invited', label: '💌 已邀約', sub: '已經開口邀請，還沒確定', on: cur === 'invited' },
+        ];
+        if (cur !== 'none') opts.push({ key: 'none', label: '↩ 清除標記' });
+        if (e.mine) opts.push({ key: 'delete', label: '🗑 從代禱牆移除', danger: true });
+        const sub = `${g.name}${e.statusBy && cur !== 'none' ? `｜${e.statusBy} 標記為${PRAY_STATUS[cur].label}` : ''}`;
+        const k = await sheet(e.name, sub, opts);
+        if (!k || k === cur) return;
+        try {
+          if (k === 'delete') {
+            if (!confirm(`要把「${e.name}」從代禱牆移除嗎？`)) return;
+            wall = await api('removePrayer', { id }); toast('已移除'); render(); return;
+          }
+          wall = await api('setPrayerStatus', { id, status: k });
+          render();
+          toast(k === 'none' ? `已清除「${e.name}」的標記` : `${PRAY_STATUS[k].icon} ${e.name}：${PRAY_STATUS[k].label}`);
+          await postWall(wall); // 每次標記都貼出最新代禱牆
+        } catch (err) { toast(err.message); }
       });
       document.getElementById('post-wall').onclick = async (e) => {
         const btn = e.currentTarget; busy(btn, true, '準備中…');

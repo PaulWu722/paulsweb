@@ -459,3 +459,30 @@ fieldset:disabled { opacity: .55; }
 .name-chip.mine { background: #e1eaf8; padding-right: 4px; }
 .name-chip button { width: 26px; height: 26px; border: 0; border-radius: 50%; background: none; color: #6b7a93; display: grid; place-items: center; cursor: pointer; }
 .name-chip button svg { width: 14px; height: 14px; }
+
+/* 代禱牆：已邀約 / 答應會來 */
+.pray-sub { position: relative; z-index: 1; margin: 10px 0 0 !important; font-size: 12px !important; opacity: .8 !important; }
+button.name-chip { border: 0; font: inherit; font-size: 14px; cursor: pointer; padding: 0 12px; gap: 3px; }
+button.name-chip:active { transform: scale(.96); }
+.name-chip .st-icon { font-size: 13px; }
+.name-chip.st-invited { background: #fde8f0; color: #a3325d; font-weight: 700; box-shadow: inset 0 0 0 1.5px #f5bcd2; }
+.name-chip.st-coming { background: linear-gradient(135deg, #fff3c4, #ffe08a); color: #7a4f00; font-weight: 800; box-shadow: inset 0 0 0 1.5px #f2c24f, 0 2px 8px rgba(242,194,79,.45); }
+.pray-group-head span i { font-style: normal; font-weight: 800; margin-right: 6px; }
+.st-coming { color: #b7791f; }
+.st-invited { color: #d0467a; }
+
+/* 底部彈出選單 */
+.sheet-wrap { position: fixed; inset: 0; z-index: 200; background: rgba(17,24,39,0); display: flex; align-items: flex-end; justify-content: center; transition: background .18s; }
+.sheet-wrap.show { background: rgba(17,24,39,.45); }
+.sheet { width: 100%; max-width: 560px; padding: 8px 12px calc(12px + var(--safe-b)); background: #fff; border-radius: 20px 20px 0 0; transform: translateY(100%); transition: transform .18s ease-out; }
+.sheet-wrap.show .sheet { transform: none; }
+.sheet-head { text-align: center; padding: 14px 8px 10px; }
+.sheet-head b { display: block; font-size: 18px; }
+.sheet-head small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+.sheet-opt { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 54px; padding: 8px 16px; margin-top: 6px; border: 0; border-radius: 14px; background: #f4f6f8; font: inherit; font-size: 16px; font-weight: 700; color: var(--ink); text-align: left; cursor: pointer; }
+.sheet-opt span { flex: 1; }
+.sheet-opt small { font-size: 12px; font-weight: 500; color: var(--muted); }
+.sheet-opt svg { color: var(--green-700); }
+.sheet-opt.on { background: #eef7f1; box-shadow: inset 0 0 0 1.5px #bfe6cc; }
+.sheet-opt.danger { color: var(--red); background: #fdf1f1; }
+.sheet-cancel { width: 100%; height: 50px; margin-top: 10px; border: 0; border-radius: 14px; background: none; font: inherit; font-size: 16px; font-weight: 600; color: var(--muted); cursor: pointer; }

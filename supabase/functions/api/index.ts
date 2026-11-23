@@ -155,14 +155,16 @@ async function getProfile(userId: string) {
 }
 
 async function wallView(u: User) {
-  const rows = must(await db.from('prayer_entries').select('id, group_name, name, user_id')
+  const rows = must(await db.from('prayer_entries').select('id, group_name, name, user_id, status, status_by_name')
     .eq('wall', PRAY_WALL).order('created_at')) as Row[];
   return {
     title: PRAY_TITLE,
     total: rows.length,
     groups: PRAY_GROUPS.map((g) => ({
       name: g,
-      entries: rows.filter((r) => r.group_name === g).map((r) => ({ id: r.id, name: r.name, mine: r.user_id === u.userId })),
+      entries: rows.filter((r) => r.group_name === g).map((r) => ({
+        id: r.id, name: r.name, mine: r.user_id === u.userId, status: r.status || 'none', statusBy: r.status_by_name || '',
+      })),
     })),
   };
 }
@@ -296,6 +298,17 @@ const actions: Record<string, (b: Row, u: User) => Promise<unknown>> = {
       names.map((name) => ({ wall: PRAY_WALL, group_name: group, name, user_id: u.userId, display_name: u.displayName })),
       { onConflict: 'wall,group_name,name', ignoreDuplicates: true },
     ));
+    return wallView(u);
+  },
+
+  // 標記「已邀約 / 答應會來」：任何人都可以標記
+  async setPrayerStatus(b, u) {
+    const status = String(b.status ?? '');
+    if (!['none', 'invited', 'coming'].includes(status)) throw new UserError('標記不正確');
+    const row = must(await db.from('prayer_entries').update({
+      status, status_by: u.userId, status_by_name: u.displayName, status_at: new Date().toISOString(),
+    }).eq('id', Number(b.id)).eq('wall', PRAY_WALL).select('id').maybeSingle());
+    if (!row) throw new UserError('找不到這個名字，可能已被移除');
     return wallView(u);
   },
 
