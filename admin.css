@@ -78,3 +78,63 @@
   .unseated { top: 64px; }
   .logo-sub { display: none; }
 }
+
+/* ===== 分頁 ===== */
+.tabs { display: flex; gap: 0.4rem; margin-bottom: 1.4rem; border-bottom: 1.5px solid var(--line); }
+.tab {
+  font: inherit; font-weight: 700; color: var(--muted); background: none; border: 0;
+  padding: 0.7rem 1.2rem; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1.5px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab:hover { color: var(--text); }
+.tab.is-active { color: var(--accent-dark); border-bottom-color: var(--accent); }
+
+/* ===== 報名資料 ===== */
+.stats-sm { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+.stats-sm li { flex-direction: column; align-items: flex-start; gap: 0; padding: 0.6rem 0.9rem; }
+.stats-sm b { font-size: 1.4rem; }
+.stats li.muted-stat b { color: var(--muted); }
+
+.filters { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; padding: 0.8rem 1rem; margin-bottom: 1rem; }
+.filters input[type=search], .filters select {
+  font: inherit; padding: 0.5rem 0.8rem; border: 1.5px solid var(--line); border-radius: 12px; background: #fffdfa; color: var(--text);
+}
+.filters input[type=search] { flex: 1 1 220px; min-width: 0; }
+.filters input:focus, .filters select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.filters .muted { margin-left: auto; }
+
+.people-wrap { overflow: auto; padding: 0; max-height: calc(100vh - 130px); }
+.people-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; min-width: 880px; }
+.people-table th {
+  position: sticky; top: 0; z-index: 2; background: #faf1e6; text-align: left; white-space: nowrap;
+  padding: 0.7rem 0.8rem; font-size: 0.85rem; color: var(--muted); cursor: pointer; user-select: none;
+  border-bottom: 1.5px solid var(--line);
+}
+.people-table th:hover { color: var(--text); }
+.people-table th.sorted { color: var(--accent-dark); }
+.people-table th.sorted::after { content: " " attr(data-dir); font-size: 0.7rem; }
+.people-table td { padding: 0.55rem 0.8rem; border-bottom: 1px solid #f3e8da; vertical-align: top; }
+.people-table tbody tr:hover { background: #fffaf3; }
+.people-table .num { color: var(--muted); width: 2.5rem; }
+.people-table .name { font-weight: 700; }
+.people-table .nowrap { white-space: nowrap; }
+.people-table .note { min-width: 160px; color: var(--muted); }
+.people-table .mono { font-variant-numeric: tabular-nums; letter-spacing: 0.08em; color: var(--muted); }
+.people-table td small { display: block; color: var(--muted); font-size: 0.8rem; }
+.muted-cell { color: var(--muted); font-size: 0.85rem; }
+.blank { color: #d8c9b8; }
+.is-captain-row { background: #fffbef; }
+.is-unseated td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.empty-row { text-align: center; color: var(--muted); padding: 2rem !important; }
+
+.tag { display: inline-block; font-size: 0.72rem; font-weight: 700; padding: 0.05rem 0.5rem; border-radius: 999px; background: #f1e6d8; color: var(--muted); vertical-align: middle; }
+.tag-cap { background: var(--gold); color: #4a3200; }
+.tag-warn { background: var(--accent-soft); color: var(--accent-dark); }
+.g { display: inline-block; min-width: 1.8em; text-align: center; padding: 0 0.4rem; border-radius: 8px; font-weight: 700; }
+.g-m { background: #e4eefb; color: #2c5ea8; }
+.g-f { background: #fbe7ee; color: #b43c66; }
+
+@media (max-width: 600px) {
+  .tab { padding: 0.6rem 0.8rem; font-size: 0.92rem; }
+  .filters .muted { margin-left: 0; width: 100%; }
+}

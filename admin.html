@@ -16,7 +16,7 @@
 
   <header class="site-header">
     <nav class="nav container wide">
-      <a href="index.html" class="logo"><span class="logo-mark">🕯️</span>年終愛筵<span class="logo-sub">桌次管理</span></a>
+      <a href="index.html" class="logo"><span class="logo-mark">🕯️</span>年終愛筵<span class="logo-sub">同工後台</span></a>
       <ul class="nav-links">
         <li><a href="index.html">報名頁</a></li>
         <li><a href="#" id="logout" hidden>登出</a></li>
@@ -38,6 +38,12 @@
 
   <!-- 管理畫面 -->
   <main class="board container wide" id="board" hidden>
+    <nav class="tabs" role="tablist">
+      <button type="button" class="tab is-active" role="tab" data-view="seats">🪑 桌次安排</button>
+      <button type="button" class="tab" role="tab" data-view="people">📋 報名資料</button>
+    </nav>
+
+    <section id="view-seats">
     <div class="board-head">
       <div>
         <h1>桌次名單</h1>
@@ -59,6 +65,60 @@
     </section>
 
     <div class="table-boards" id="tables"></div>
+    </section>
+
+    <!-- 報名資料 -->
+    <section id="view-people" hidden>
+      <div class="board-head">
+        <div>
+          <h1>報名資料</h1>
+          <p class="muted">所有人的性別、身分、小區與桌次。點欄位標題可以排序。</p>
+        </div>
+        <div class="board-actions">
+          <button type="button" class="btn btn-small btn-ghost" id="people-refresh">↻ 重新整理</button>
+          <button type="button" class="btn btn-small btn-primary" id="people-csv">下載 Excel（CSV）</button>
+        </div>
+      </div>
+
+      <ul class="stats stats-sm" id="people-stats"></ul>
+
+      <div class="filters card">
+        <input type="search" id="f-q" placeholder="搜尋姓名、備註、修改碼⋯⋯">
+        <select id="f-gender" aria-label="性別">
+          <option value="">性別：全部</option><option>男</option><option>女</option><option value="-">未填</option>
+        </select>
+        <select id="f-role" aria-label="身分">
+          <option value="">身分：全部</option><option>聖徒</option><option>福音朋友</option><option>學生</option><option value="-">未填</option>
+        </select>
+        <select id="f-area" aria-label="小區">
+          <option value="">小區：全部</option><option>霧峰</option><option>朝陽</option><option>其他</option><option value="-">未填</option>
+        </select>
+        <select id="f-seat" aria-label="桌次">
+          <option value="">桌次：全部</option><option value="seated">已入座</option><option value="unseated">尚未安排</option>
+        </select>
+        <span class="muted" id="f-count"></span>
+      </div>
+
+      <div class="people-wrap card">
+        <table class="people-table">
+          <thead>
+            <tr>
+              <th data-sort="idx">#</th>
+              <th data-sort="name">姓名</th>
+              <th data-sort="gender">性別</th>
+              <th data-sort="role">身分</th>
+              <th data-sort="area">小區</th>
+              <th data-sort="table">桌次</th>
+              <th data-sort="source">來源</th>
+              <th data-sort="created">報名時間</th>
+              <th data-sort="code">修改碼</th>
+              <th data-sort="note">備註</th>
+            </tr>
+          </thead>
+          <tbody id="people-body"></tbody>
+        </table>
+      </div>
+    </section>
   </main>
 
   <div class="toast" id="toast" role="status"></div>

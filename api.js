@@ -3,7 +3,7 @@
   'use strict';
   const CFG = window.APP_CONFIG || {};
   const GENDERS = ['男', '女'];
-  const ROLES = ['聖徒', '福音朋友'];
+  const ROLES = ['聖徒', '福音朋友', '學生'];
   const AREAS = ['霧峰', '朝陽', '其他'];
 
   // ================= 後端：Supabase =================
@@ -12,6 +12,7 @@
     state: () => ['feast_state', {}],
     adminOverview: (p) => ['feast_admin_overview', { p_pass: p.pass }],
     adminMove: (p) => ['feast_admin_move', { p_pass: p.pass, p_person: p.person, p_table: p.table }],
+    adminPeople: (p) => ['feast_admin_people', { p_pass: p.pass }],
     register: (p) => ['feast_register', {
       p_members: p.data.members, p_area: p.data.area,
       p_area_other: p.data.areaOther || '', p_note: p.data.note || '',
@@ -32,7 +33,7 @@
       if (!/[\u4e00-\u9fff]/.test(error.message || '')) console.error(error);
       throw new Error(msg);
     }
-    return { ok: true, ...data };
+    return Array.isArray(data) ? { ok: true, list: data } : { ok: true, ...data };
   }
 
   // ================= 示範模式：用 localStorage 模擬後端（邏輯同 supabase/schema.sql） =================
@@ -70,6 +71,20 @@
     let res;
     switch (action) {
       case 'state': res = stateOf(); break;
+      case 'adminPeople': {
+        if (p.pass !== '1234') throw new Error('密碼錯誤');
+        const capOf = (no) => (db.tables.find((t) => t.no === no) || {}).captain || '';
+        const list = db.people.map((q) => ({
+          name: q.name, gender: q.gender || '', role: q.role || '', area: q.area || '', note: q.note || '', code: q.code,
+          table: q.table || 0, captain: capOf(q.table), is_captain: !!q.table && q.name === capOf(q.table),
+          source: '網站報名', family_size: db.people.filter((x) => x.group === q.group).length, created: '',
+        }));
+        db.tables.filter((t) => t.captain && !db.people.some((q) => q.table === t.no && q.name === t.captain)).forEach((t) =>
+          list.push({ name: t.captain, gender: '', role: '', area: '', note: '', code: '', table: t.no, captain: t.captain,
+            is_captain: true, source: '桌長（未報名）', family_size: 0, created: '' }));
+        res = { list: list.sort((a, b) => (a.table || 9999) - (b.table || 9999) || b.is_captain - a.is_captain) };
+        break;
+      }
       case 'adminOverview':
       case 'adminMove': {
         if (p.pass !== '1234') throw new Error('密碼錯誤');

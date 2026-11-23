@@ -33,9 +33,13 @@ create table if not exists public.feast_people (
   sort       int  not null default 0,
   name       text not null,
   gender     text not null check (gender in ('男', '女')),
-  role       text not null check (role in ('聖徒', '福音朋友')),
+  role       text check (role in ('聖徒', '福音朋友', '學生')),
   created_at timestamptz not null default now()
 );
+
+-- 身分選項：聖徒／福音朋友／學生（既有資料庫也會一併更新規則）
+alter table public.feast_people drop constraint if exists feast_people_role_check;
+alter table public.feast_people add constraint feast_people_role_check check (role in ('聖徒', '福音朋友', '學生'));
 
 -- 由名單匯入的人可能沒有性別／身分資料（網站報名仍必填）
 alter table public.feast_people alter column gender drop not null;
@@ -145,7 +149,7 @@ begin
     if coalesce(m->>'gender', '') not in ('男', '女') then
       raise exception '請選擇%的性別', coalesce(nullif(v_who, ''), v_name);
     end if;
-    if coalesce(m->>'role', '') not in ('聖徒', '福音朋友') then
+    if coalesce(m->>'role', '') not in ('聖徒', '福音朋友', '學生') then
       raise exception '請選擇%的身分', coalesce(nullif(v_who, ''), v_name);
     end if;
   end loop;
@@ -336,3 +340,36 @@ end $$;
 revoke execute on function public.feast_admin_check(text) from public, anon, authenticated;
 grant execute on function public.feast_admin_overview(text) to anon, authenticated;
 grant execute on function public.feast_admin_move(text, uuid, int) to anon, authenticated;
+
+-- 後台「報名資料」分頁：所有人的完整資料（含尚未報名的桌長）
+create or replace function public.feast_admin_people(p_pass text)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+begin
+  perform feast_admin_check(p_pass);
+  return coalesce((
+    select jsonb_agg(r order by (r->>'table_sort')::int, (r->>'is_captain')::boolean desc, r->>'created')
+    from (
+      select jsonb_build_object(
+        'name', p.name, 'gender', coalesce(p.gender, ''), 'role', coalesce(p.role, ''),
+        'area', f.area, 'note', f.note, 'code', f.code,
+        'table', coalesce(f.table_no, 0), 'table_sort', coalesce(f.table_no, 9999),
+        'captain', coalesce(t.captain, ''), 'is_captain', (t.captain is not null and p.name = t.captain),
+        'source', case when f.note = '名單匯入' then '名單匯入' else '網站報名' end,
+        'family_size', (select count(*) from feast_people q where q.family_id = f.id),
+        'created', to_char(f.created_at at time zone 'Asia/Taipei', 'YYYY/MM/DD HH24:MI')) as r
+      from feast_people p
+      join feast_families f on f.id = p.family_id
+      left join feast_tables t on t.no = f.table_no
+      union all
+      select jsonb_build_object(
+        'name', t.captain, 'gender', '', 'role', '', 'area', '', 'note', '', 'code', '',
+        'table', t.no, 'table_sort', t.no, 'captain', t.captain, 'is_captain', true,
+        'source', '桌長（未報名）', 'family_size', 0, 'created', '')
+      from feast_tables t
+      where t.captain <> ''
+        and not exists (select 1 from feast_people p join feast_families f on f.id = p.family_id
+                        where f.table_no = t.no and p.name = t.captain)
+    ) x
+  ), '[]'::jsonb);
+end $$;
+grant execute on function public.feast_admin_people(text) to anon, authenticated;

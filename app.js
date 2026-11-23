@@ -8,7 +8,7 @@
     String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   const GENDERS = ['男', '女'];
-  const ROLES = ['聖徒', '福音朋友'];
+  const ROLES = ['聖徒', '福音朋友', '學生'];
   const AREAS = ['霧峰', '朝陽', '其他'];
   const MAX_FAMILY = 10;
 

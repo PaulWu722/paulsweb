@@ -186,6 +186,7 @@
       input.value = '';
       showBoard(true);
       render();
+      if (view === 'people') setView('people');
     } catch (err) {
       $('#gate-error').textContent = err.message;
       input.select();
@@ -198,12 +199,140 @@
   $('#refresh').addEventListener('click', () => load());
   $('#copy-text').addEventListener('click', copyText);
 
+
+  // ================= 報名資料分頁 =================
+  let view = location.hash === '#people' ? 'people' : 'seats';
+  let people = null;
+  let sortKey = 'table';
+  let sortDir = 1;
+
+  const areaGroup = (a) => (!a ? '-' : a.startsWith('其他') ? '其他' : a);
+  const tableLabel = (r) => (r.table ? `第 ${r.table} 桌` : '尚未安排');
+
+  function setView(v) {
+    view = v;
+    document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('is-active', t.dataset.view === v));
+    $('#view-seats').hidden = v !== 'seats';
+    $('#view-people').hidden = v !== 'people';
+    history.replaceState(null, '', v === 'people' ? '#people' : location.pathname + location.search);
+    if (v === 'people') loadPeople(true);
+    else load(true);
+  }
+
+  async function loadPeople(silent = false) {
+    try {
+      const res = await call('adminPeople', { pass });
+      people = res.list.map((r, i) => ({ ...r, idx: i + 1 }));
+      renderPeople();
+      if (!silent) toast('已更新');
+    } catch (e) {
+      if (/密碼/.test(e.message)) return logout(e.message);
+      toast(e.message, true);
+    }
+  }
+
+  function filteredPeople() {
+    const q = $('#f-q').value.trim().toLowerCase();
+    const g = $('#f-gender').value, r = $('#f-role').value, a = $('#f-area').value, seat = $('#f-seat').value;
+    return people.filter((p) => {
+      if (q && ![p.name, p.note, p.code, p.captain].join(' ').toLowerCase().includes(q)) return false;
+      if (g && (g === '-' ? p.gender : p.gender !== g)) return false;
+      if (r && (r === '-' ? p.role : p.role !== r)) return false;
+      if (a && areaGroup(p.area) !== a) return false;
+      if (seat === 'seated' && !p.table) return false;
+      if (seat === 'unseated' && p.table) return false;
+      return true;
+    }).sort((x, y) => {
+      const k = sortKey;
+      let vx = x[k], vy = y[k];
+      if (k === 'table') { vx = x.table || 9999; vy = y.table || 9999; }
+      if (typeof vx === 'number' && typeof vy === 'number') return (vx - vy) * sortDir || x.idx - y.idx;
+      vx = String(vx ?? ''); vy = String(vy ?? '');
+      if (!vx && vy) return 1;           // 空白排最後
+      if (vx && !vy) return -1;
+      return vx.localeCompare(vy, 'zh-Hant') * sortDir || x.idx - y.idx;
+    });
+  }
+
+  function renderPeople() {
+    if (!people) return;
+    const count = (f) => people.filter(f).length;
+    const stat = (n, label, cls = '') => `<li class="${cls}"><b>${n}</b><span>${label}</span></li>`;
+    $('#people-stats').innerHTML = [
+      stat(people.length, '總人數（含桌長）'),
+      stat(count((p) => p.gender === '男'), '男'),
+      stat(count((p) => p.gender === '女'), '女'),
+      stat(count((p) => !p.gender), '性別未填', 'muted-stat'),
+      stat(count((p) => areaGroup(p.area) === '霧峰'), '霧峰'),
+      stat(count((p) => areaGroup(p.area) === '朝陽'), '朝陽'),
+      stat(count((p) => areaGroup(p.area) === '其他'), '其他'),
+      stat(count((p) => !p.area), '小區未填', 'muted-stat'),
+      stat(count((p) => p.role === '福音朋友'), '福音朋友'),
+      stat(count((p) => p.role === '學生'), '學生'),
+    ].join('');
+
+    const rows = filteredPeople();
+    $('#f-count').textContent = `顯示 ${rows.length} / ${people.length} 筆`;
+    const dash = '<span class="blank">—</span>';
+    $('#people-body').innerHTML = rows.map((p, i) => `
+      <tr class="${p.is_captain ? 'is-captain-row' : ''}${p.table ? '' : ' is-unseated'}">
+        <td class="num">${i + 1}</td>
+        <td class="name">${esc(p.name)}${p.is_captain ? ' <span class="tag tag-cap">桌長</span>' : ''}${p.family_size > 1 ? ` <span class="tag" title="同一組報名 ${p.family_size} 人">家庭 ${p.family_size}</span>` : ''}</td>
+        <td>${p.gender ? `<span class="g g-${p.gender === '男' ? 'm' : 'f'}">${esc(p.gender)}</span>` : dash}</td>
+        <td>${esc(p.role) || dash}</td>
+        <td>${esc(p.area) || dash}</td>
+        <td class="nowrap">${p.table ? `${tableLabel(p)}<small>${esc(p.captain)}</small>` : '<span class="tag tag-warn">尚未安排</span>'}</td>
+        <td class="nowrap muted-cell">${esc(p.source)}</td>
+        <td class="nowrap muted-cell">${esc(p.created) || dash}</td>
+        <td class="mono">${esc(p.code) || dash}</td>
+        <td class="note">${esc(p.note) || ''}</td>
+      </tr>`).join('') || '<tr><td colspan="10" class="empty-row">沒有符合條件的資料</td></tr>';
+
+    document.querySelectorAll('.people-table th').forEach((th) => {
+      th.classList.toggle('sorted', th.dataset.sort === sortKey);
+      th.dataset.dir = th.dataset.sort === sortKey ? (sortDir > 0 ? '▲' : '▼') : '';
+    });
+  }
+
+  function downloadCsv() {
+    if (!people) return;
+    const head = ['姓名', '性別', '身分', '小區', '桌號', '桌長', '是否桌長', '來源', '報名時間', '修改碼', '備註'];
+    const rows = filteredPeople().map((p) => [p.name, p.gender, p.role, p.area, p.table || '尚未安排', p.captain,
+      p.is_captain ? '是' : '', p.source, p.created, p.code, p.note]);
+    const cell = (v) => {
+      const t = String(v ?? '');
+      return /[",\n]/.test(t) || /^[=+\-@]/.test(t) ? `"${(/^[=+\-@]/.test(t) ? "'" : '') + t.replace(/"/g, '""')}"` : t;
+    };
+    const csv = '﻿' + [head, ...rows].map((r) => r.map(cell).join(',')).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = `aiyan-roster-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.hidden = true;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+
+  document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => setView(t.dataset.view)));
+  ['#f-q', '#f-gender', '#f-role', '#f-area', '#f-seat'].forEach((id) =>
+    $(id).addEventListener('input', renderPeople));
+  document.querySelector('.people-table thead').addEventListener('click', (e) => {
+    const th = e.target.closest('th[data-sort]');
+    if (!th) return;
+    if (sortKey === th.dataset.sort) sortDir = -sortDir;
+    else { sortKey = th.dataset.sort; sortDir = 1; }
+    renderPeople();
+  });
+  $('#people-refresh').addEventListener('click', () => loadPeople());
+  $('#people-csv').addEventListener('click', downloadCsv);
+
   // ---------- 初始化 ----------
   $('#demo-banner').hidden = LIVE;
+  const refreshCurrent = () => (view === 'people' ? loadPeople(true) : load(true));
   if (pass) {
     showBoard(true);
-    load(true);
+    setView(view);
   }
-  setInterval(() => { if (pass && !document.hidden) load(true); }, 15000);
-  document.addEventListener('visibilitychange', () => { if (pass && !document.hidden) load(true); });
+  setInterval(() => { if (pass && !document.hidden) refreshCurrent(); }, 15000);
+  document.addEventListener('visibilitychange', () => { if (pass && !document.hidden) refreshCurrent(); });
 })();
