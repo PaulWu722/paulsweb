@@ -109,8 +109,39 @@
       </div>`;
   }
 
+  // ================= 搜尋名字 =================
+  let query = '';
+  const norm = (s) => String(s || '').replace(/\s+/g, '').toLowerCase();
+
+  function searchHits() {
+    const q = norm(query);
+    if (!q) return [];
+    const hits = [];
+    state.tables.forEach((t) => {
+      const seen = new Set();
+      if (t.captain && norm(t.captain).includes(q)) { hits.push({ name: t.captain, no: t.no, captain: true }); seen.add(t.captain); }
+      (t.members || []).forEach((m) => {
+        if (!seen.has(m.name) && norm(m.name).includes(q)) hits.push({ name: m.name, no: t.no, captain: m.name === t.captain });
+      });
+    });
+    return hits;
+  }
+
+  function renderSearch() {
+    const box = $('#search-results');
+    const hits = searchHits();
+    const nos = new Set(hits.map((h) => h.no));
+    document.querySelectorAll('.table-card').forEach((c) => c.classList.toggle('is-hit', nos.has(Number(c.dataset.no))));
+    if (!norm(query)) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    box.innerHTML = hits.length
+      ? hits.map((h) => `<li><button type="button" data-hit="${h.no}"><span>${esc(h.name)}${h.captain ? ' <small>桌長</small>' : ''}</span><b>第 ${h.no} 桌</b></button></li>`).join('')
+      : '<li class="none">找不到這個名字（可能還沒報名或還沒選桌）</li>';
+  }
+
   function render() {
     renderTables();
+    renderSearch();
     renderMyStatus();
   }
 
@@ -362,6 +393,12 @@
   );
 
   // ================= 初始化 =================
+  $('#search').addEventListener('input', (e) => { query = e.target.value; renderSearch(); });
+  $('#search-results').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-hit]');
+    if (b) openTable(Number(b.dataset.hit));
+  });
+
   function renderEventInfo() {
     const ev = CFG.EVENT || {};
     const items = [['📅', ev.date], ['⏰', ev.time], ['📍', ev.place]].filter(([, v]) => v);
