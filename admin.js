@@ -64,6 +64,7 @@
             <div class="tb-title">
               <span class="tb-no">${t.no}</span>
               <span class="tb-captain">${esc(t.captain || '桌長待定')}</span>
+              <button type="button" class="tb-edit" data-table="${t.no}" aria-label="編輯第 ${t.no} 桌桌長" title="編輯桌長">✎</button>
             </div>
             <span class="tb-count" title="${label}">${n}/${cap}<small>${label}</small></span>
           </header>
@@ -221,7 +222,9 @@
 
   async function loadPeople(silent = false) {
     try {
-      const res = await call('adminPeople', { pass });
+      const [res, ov] = await Promise.all([call('adminPeople', { pass }), call('adminOverview', { pass })]);
+      tablesInfo = ov.tables;
+      capacity = ov.capacity;
       people = res.list.map((r, i) => ({ ...r, idx: i + 1 }));
       renderPeople();
       if (!silent) toast('已更新');
@@ -286,7 +289,8 @@
         <td class="nowrap muted-cell">${esc(p.created) || dash}</td>
         <td class="mono">${esc(p.code) || dash}</td>
         <td class="note">${esc(p.note) || ''}</td>
-      </tr>`).join('') || '<tr><td colspan="10" class="empty-row">沒有符合條件的資料</td></tr>';
+        <td class="nowrap"><button type="button" class="row-edit" data-idx="${p.idx}">✎ 編輯</button></td>
+      </tr>`).join('') || '<tr><td colspan="11" class="empty-row">沒有符合條件的資料</td></tr>';
 
     document.querySelectorAll('.people-table th').forEach((th) => {
       th.classList.toggle('sorted', th.dataset.sort === sortKey);
@@ -325,6 +329,150 @@
   });
   $('#people-refresh').addEventListener('click', () => loadPeople());
   $('#people-csv').addEventListener('click', downloadCsv);
+
+
+  // ================= 編輯資料 =================
+  let tablesInfo = [];
+  let capacity = 10;
+  let editing = null; // 正在編輯的人（null = 新增）
+
+  const refreshAll = () => (view === 'people' ? loadPeople(true) : load(true));
+
+  // 呼叫後端；密碼失效就登出，其他錯誤回傳訊息
+  async function act(action, args) {
+    try {
+      return { ok: true, res: await call(action, { pass, ...args }) };
+    } catch (e) {
+      if (/密碼/.test(e.message)) { logout(e.message); return { ok: false, msg: e.message, out: true }; }
+      return { ok: false, msg: e.message };
+    }
+  }
+
+  function parseArea(area) {
+    if (area === '霧峰' || area === '朝陽') return { sel: area, other: '' };
+    if (!area) return { sel: '', other: '' };
+    const m = area.match(/^其他[（(](.*)[）)]$/);
+    return { sel: '其他', other: m ? m[1] : area === '其他' ? '' : area };
+  }
+
+  function updateTableHint() {
+    const f = $('#person-form');
+    const no = Number(f.elements.table.value) || 0;
+    const t = tablesInfo.find((x) => x.no === no);
+    const hint = $('#table-hint');
+    hint.textContent = '';
+    if (!t) return;
+    const mine = editing && editing.table === no;
+    const after = t.count + (mine || (t.captain && f.elements.pname.value.trim() === t.captain) ? 0 : 1);
+    if (!mine && after > capacity) hint.textContent = `⚠ 這桌目前 ${t.count}/${capacity} 人，儲存後會超過上限（後台可以超過）。`;
+  }
+
+  function openPerson(p) {
+    editing = p || null;
+    const f = $('#person-form');
+    f.reset();
+    $('#person-error').textContent = '';
+    $('#person-title').textContent = p ? '編輯資料' : '新增人員';
+    $('#person-save').textContent = p ? '儲存修改' : '新增';
+    $('#person-delete').hidden = !p;
+    f.elements.table.innerHTML = '<option value="0">尚未安排</option>' + tablesInfo.map((t) =>
+      `<option value="${t.no}">第 ${t.no} 桌 ${esc(t.captain || '（桌長待定）')}・${t.count}/${capacity}</option>`).join('');
+    if (p) {
+      const a = parseArea(p.area);
+      f.elements.pname.value = p.name;
+      f.elements.gender.value = p.gender || '';
+      f.elements.role.value = p.role || '';
+      f.elements.area.value = a.sel;
+      f.elements.areaOther.value = a.other;
+      f.elements.table.value = String(p.table || 0);
+      f.elements.note.value = p.note || '';
+    }
+    $('#person-family-hint').textContent = p && p.family_size > 1
+      ? `此人與其他 ${p.family_size - 1} 位是同一組報名。修改小區、備註或桌次時，會自動把他單獨分出來，不會影響其他家人。` : '';
+    updateTableHint();
+    $('#person-modal').showModal();
+    f.elements.pname.focus();
+  }
+
+  $('#person-form').addEventListener('input', updateTableHint);
+
+  $('#person-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const other = f.elements.areaOther.value.trim();
+    const args = {
+      name: f.elements.pname.value, gender: f.elements.gender.value, role: f.elements.role.value,
+      area: f.elements.area.value === '其他' && other ? `其他（${other}）` : f.elements.area.value,
+      note: f.elements.note.value, table: Number(f.elements.table.value) || 0,
+    };
+    const btn = $('#person-save');
+    btn.disabled = true;
+    const r = await act(editing ? 'adminUpdatePerson' : 'adminAddPerson', editing ? { ...args, person: editing.id } : args);
+    btn.disabled = false;
+    if (!r.ok) { if (!r.out) $('#person-error').textContent = r.msg; return; }
+    $('#person-modal').close();
+    toast(editing ? `已更新 ${args.name.trim()}` : `已新增 ${args.name.trim()}`);
+    refreshAll();
+  });
+
+  $('#person-delete').addEventListener('click', async () => {
+    if (!editing) return;
+    if (!confirm(`確定要刪除「${editing.name}」嗎？\n刪除後無法復原。`)) return;
+    const r = await act('adminDeletePerson', { person: editing.id });
+    if (!r.ok) { if (!r.out) $('#person-error').textContent = r.msg; return; }
+    $('#person-modal').close();
+    toast(`已刪除 ${editing.name}`);
+    refreshAll();
+  });
+
+  // ---- 桌長 ----
+  let captainTable = 0;
+  function openCaptain(no) {
+    const t = (view === 'people' ? tablesInfo : (data && data.tables) || []).find((x) => x.no === no);
+    if (!t) return;
+    captainTable = no;
+    $('#captain-title').textContent = `編輯第 ${no} 桌桌長`;
+    $('#captain-form').elements.captain.value = t.captain || '';
+    $('#captain-error').textContent = '';
+    $('#captain-modal').showModal();
+    $('#captain-form').elements.captain.focus();
+  }
+
+  $('#captain-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = e.target.elements.captain.value.trim();
+    const r = await act('adminSetCaptain', { table: captainTable, captain: name });
+    if (!r.ok) { if (!r.out) $('#captain-error').textContent = r.msg; return; }
+    $('#captain-modal').close();
+    toast(name ? `第 ${captainTable} 桌桌長：${name}` : `第 ${captainTable} 桌桌長待定`);
+    refreshAll();
+  });
+
+  $('#add-table').addEventListener('click', async () => {
+    const r = await act('adminAddTable', {});
+    if (!r.ok) { if (!r.out) toast(r.msg, true); return; }
+    toast('已新增一桌');
+    load(true);
+  });
+
+  $('#add-person').addEventListener('click', () => openPerson(null));
+
+  $('#people-body').addEventListener('click', (e) => {
+    const btn = e.target.closest('.row-edit');
+    if (!btn) return;
+    const p = people.find((x) => x.idx === Number(btn.dataset.idx));
+    if (!p) return;
+    if (p.id) openPerson(p);
+    else openCaptain(p.table); // 尚未報名的桌長：只能改桌長姓名
+  });
+
+  $('#tables').addEventListener('click', (e) => {
+    const b = e.target.closest('.tb-edit');
+    if (b) openCaptain(Number(b.dataset.table));
+  });
+
+  document.querySelectorAll('dialog').forEach((d) =>
+    d.addEventListener('click', (e) => { if (e.target === d) d.close(); }));
 
   // ---------- 初始化 ----------
   $('#demo-banner').hidden = LIVE;

@@ -13,6 +13,14 @@
     adminOverview: (p) => ['feast_admin_overview', { p_pass: p.pass }],
     adminMove: (p) => ['feast_admin_move', { p_pass: p.pass, p_person: p.person, p_table: p.table }],
     adminPeople: (p) => ['feast_admin_people', { p_pass: p.pass }],
+    adminUpdatePerson: (p) => ['feast_admin_update_person', {
+      p_pass: p.pass, p_person: p.person, p_name: p.name, p_gender: p.gender, p_role: p.role,
+      p_area: p.area, p_note: p.note, p_table: p.table }],
+    adminAddPerson: (p) => ['feast_admin_add_person', {
+      p_pass: p.pass, p_name: p.name, p_gender: p.gender, p_role: p.role, p_area: p.area, p_note: p.note, p_table: p.table }],
+    adminDeletePerson: (p) => ['feast_admin_delete_person', { p_pass: p.pass, p_person: p.person }],
+    adminSetCaptain: (p) => ['feast_admin_set_captain', { p_pass: p.pass, p_table: p.table, p_captain: p.captain }],
+    adminAddTable: (p) => ['feast_admin_add_table', { p_pass: p.pass }],
     register: (p) => ['feast_register', {
       p_members: p.data.members, p_area: p.data.area,
       p_area_other: p.data.areaOther || '', p_note: p.data.note || '',
@@ -71,11 +79,59 @@
     let res;
     switch (action) {
       case 'state': res = stateOf(); break;
+      case 'adminUpdatePerson':
+      case 'adminAddPerson':
+      case 'adminDeletePerson':
+      case 'adminSetCaptain':
+      case 'adminAddTable': {
+        if (p.pass !== '1234') throw new Error('密碼錯誤');
+        const rid = () => Math.random().toString(36).slice(2, 12);
+        const clean = () => {
+          const name = String(p.name || '').trim().slice(0, 30);
+          if (!name) throw new Error('請填寫姓名');
+          if (!['', '男', '女'].includes(p.gender || '')) throw new Error('性別不正確');
+          if (!['', ...ROLES].includes(p.role || '')) throw new Error('身分不正確');
+          const t = Number(p.table) || 0;
+          if (t && !db.tables.some((tb) => tb.no === t)) throw new Error('桌號不正確');
+          return { name, t, area: String(p.area || '').trim().slice(0, 30), note: String(p.note || '').trim().slice(0, 200) };
+        };
+        const where = (q) => `${q.name}（${q.table ? `第 ${q.table} 桌` : '尚未安排桌次'}）`;
+        if (action === 'adminAddPerson') {
+          const c = clean();
+          const dup = db.people.find((q) => q.name === c.name);
+          if (dup) throw new Error(`「${c.name}」已經在名單中：${where(dup)}`);
+          const g = rid();
+          db.people.push({ id: g, group: g, code: String(1000 + Math.floor(Math.random() * 9000)), name: c.name,
+            gender: p.gender || '', role: p.role || '', area: c.area, note: c.note, table: c.t });
+        } else if (action === 'adminUpdatePerson') {
+          const x = db.people.find((q) => q.id === p.person);
+          if (!x) throw new Error('找不到這個人，請重新整理');
+          const c = clean();
+          const dup = db.people.find((q) => q !== x && q.name === c.name);
+          if (dup) throw new Error(`「${c.name}」已經在名單中：${where(dup)}`);
+          if ((x.area || '') !== c.area || (x.note || '') !== c.note || (x.table || 0) !== c.t) {
+            if (db.people.some((q) => q !== x && q.group === x.group)) x.group = rid();
+          }
+          Object.assign(x, { name: c.name, gender: p.gender || '', role: p.role || '', area: c.area, note: c.note, table: c.t });
+        } else if (action === 'adminDeletePerson') {
+          const i = db.people.findIndex((q) => q.id === p.person);
+          if (i < 0) throw new Error('找不到這個人，請重新整理');
+          db.people.splice(i, 1);
+        } else if (action === 'adminSetCaptain') {
+          const tb = db.tables.find((x) => x.no === Number(p.table));
+          if (!tb) throw new Error('桌號不正確');
+          tb.captain = String(p.captain || '').trim().slice(0, 30);
+        } else {
+          db.tables.push({ no: Math.max(0, ...db.tables.map((x) => x.no)) + 1, captain: '' });
+        }
+        res = { ok: true };
+        break;
+      }
       case 'adminPeople': {
         if (p.pass !== '1234') throw new Error('密碼錯誤');
         const capOf = (no) => (db.tables.find((t) => t.no === no) || {}).captain || '';
         const list = db.people.map((q) => ({
-          name: q.name, gender: q.gender || '', role: q.role || '', area: q.area || '', note: q.note || '', code: q.code,
+          id: q.id, name: q.name, gender: q.gender || '', role: q.role || '', area: q.area || '', note: q.note || '', code: q.code,
           table: q.table || 0, captain: capOf(q.table), is_captain: !!q.table && q.name === capOf(q.table),
           source: '網站報名', family_size: db.people.filter((x) => x.group === q.group).length, created: '',
         }));

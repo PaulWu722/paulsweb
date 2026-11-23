@@ -350,7 +350,7 @@ begin
     select jsonb_agg(r order by (r->>'table_sort')::int, (r->>'is_captain')::boolean desc, r->>'created')
     from (
       select jsonb_build_object(
-        'name', p.name, 'gender', coalesce(p.gender, ''), 'role', coalesce(p.role, ''),
+        'id', p.id, 'name', p.name, 'gender', coalesce(p.gender, ''), 'role', coalesce(p.role, ''),
         'area', f.area, 'note', f.note, 'code', f.code,
         'table', coalesce(f.table_no, 0), 'table_sort', coalesce(f.table_no, 9999),
         'captain', coalesce(t.captain, ''), 'is_captain', (t.captain is not null and p.name = t.captain),
@@ -362,7 +362,7 @@ begin
       left join feast_tables t on t.no = f.table_no
       union all
       select jsonb_build_object(
-        'name', t.captain, 'gender', '', 'role', '', 'area', '', 'note', '', 'code', '',
+        'id', null::uuid, 'name', t.captain, 'gender', '', 'role', '', 'area', '', 'note', '', 'code', '',
         'table', t.no, 'table_sort', t.no, 'captain', t.captain, 'is_captain', true,
         'source', '桌長（未報名）', 'family_size', 0, 'created', '')
       from feast_tables t
@@ -373,3 +373,136 @@ begin
   ), '[]'::jsonb);
 end $$;
 grant execute on function public.feast_admin_people(text) to anon, authenticated;
+
+-- =====================================================================
+-- 後台編輯：修改資料、新增／刪除人員、修改桌長、新增桌子（皆需管理密碼）
+-- =====================================================================
+
+-- 把一個人從家庭中分出來（保留修改碼與桌次）；已是單獨一人則不動
+create or replace function public.feast_admin_split(p_person uuid)
+returns uuid language plpgsql volatile security definer set search_path = public as $$
+declare v_family uuid; v_size int; v_new uuid;
+begin
+  select family_id into v_family from feast_people where id = p_person;
+  if v_family is null then raise exception '找不到這個人，請重新整理'; end if;
+  select count(*) into v_size from feast_people where family_id = v_family;
+  if v_size = 1 then return v_family; end if;
+  insert into feast_families (code, area, note, table_no, created_at)
+  select code, area, note, table_no, created_at from feast_families where id = v_family
+  returning id into v_new;
+  update feast_people set family_id = v_new where id = p_person;
+  return v_new;
+end $$;
+revoke execute on function public.feast_admin_split(uuid) from public, anon, authenticated;
+
+-- 檢查姓名並回傳重複說明（沒有重複回傳 null）
+create or replace function public.feast_admin_name_taken(p_name text, p_except uuid default null)
+returns text language sql stable security definer set search_path = public as $$
+  select string_agg(p.name || '（' || coalesce('第 ' || f.table_no || ' 桌', '尚未安排桌次') || '）', '、')
+  from feast_people p join feast_families f on f.id = p.family_id
+  where btrim(p.name) = p_name and (p_except is null or p.id <> p_except)
+$$;
+revoke execute on function public.feast_admin_name_taken(text, uuid) from public, anon, authenticated;
+
+create or replace function public.feast_admin_update_person(
+  p_pass text, p_person uuid, p_name text, p_gender text, p_role text,
+  p_area text, p_note text, p_table int
+) returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare
+  v_name text := left(btrim(coalesce(p_name, '')), 30);
+  v_area text := left(btrim(coalesce(p_area, '')), 30);
+  v_note text := left(btrim(coalesce(p_note, '')), 200);
+  v_cur record;
+  v_fam uuid;
+  v_dup text;
+begin
+  perform feast_admin_check(p_pass);
+  if v_name = '' then raise exception '請填寫姓名'; end if;
+  if coalesce(p_gender, '') not in ('', '男', '女') then raise exception '性別不正確'; end if;
+  if coalesce(p_role, '') not in ('', '聖徒', '福音朋友', '學生') then raise exception '身分不正確'; end if;
+  if coalesce(p_table, 0) <> 0 and not exists (select 1 from feast_tables where no = p_table) then
+    raise exception '桌號不正確';
+  end if;
+  perform pg_advisory_xact_lock(hashtext('feast_register'));
+
+  select f.id as fam, f.area, f.note, f.table_no into v_cur
+  from feast_people p join feast_families f on f.id = p.family_id where p.id = p_person;
+  if not found then raise exception '找不到這個人，請重新整理'; end if;
+
+  v_dup := feast_admin_name_taken(v_name, p_person);
+  if v_dup is not null then raise exception '「%」已經在名單中：%', v_name, v_dup; end if;
+
+  -- 小區、備註、桌次屬於「一組」；只改這個人時先把他分出來，不影響家人
+  if v_cur.area is distinct from v_area or v_cur.note is distinct from v_note
+     or coalesce(v_cur.table_no, 0) <> coalesce(p_table, 0) then
+    v_fam := feast_admin_split(p_person);
+    update feast_families set area = v_area, note = v_note, table_no = nullif(p_table, 0) where id = v_fam;
+  end if;
+  update feast_people set name = v_name, gender = nullif(p_gender, ''), role = nullif(p_role, '') where id = p_person;
+  return jsonb_build_object('ok', true);
+end $$;
+
+create or replace function public.feast_admin_add_person(
+  p_pass text, p_name text, p_gender text, p_role text, p_area text, p_note text, p_table int
+) returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare
+  v_name text := left(btrim(coalesce(p_name, '')), 30);
+  v_family uuid;
+  v_dup text;
+begin
+  perform feast_admin_check(p_pass);
+  if v_name = '' then raise exception '請填寫姓名'; end if;
+  if coalesce(p_gender, '') not in ('', '男', '女') then raise exception '性別不正確'; end if;
+  if coalesce(p_role, '') not in ('', '聖徒', '福音朋友', '學生') then raise exception '身分不正確'; end if;
+  if coalesce(p_table, 0) <> 0 and not exists (select 1 from feast_tables where no = p_table) then
+    raise exception '桌號不正確';
+  end if;
+  perform pg_advisory_xact_lock(hashtext('feast_register'));
+  v_dup := feast_admin_name_taken(v_name);
+  if v_dup is not null then raise exception '「%」已經在名單中：%', v_name, v_dup; end if;
+
+  insert into feast_families (code, area, note, table_no)
+  values ((1000 + floor(random() * 9000))::int::text, left(btrim(coalesce(p_area, '')), 30),
+          left(btrim(coalesce(p_note, '')), 200), nullif(p_table, 0))
+  returning id into v_family;
+  insert into feast_people (family_id, sort, name, gender, role)
+  values (v_family, 1, v_name, nullif(p_gender, ''), nullif(p_role, ''));
+  return jsonb_build_object('ok', true);
+end $$;
+
+create or replace function public.feast_admin_delete_person(p_pass text, p_person uuid)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare v_family uuid;
+begin
+  perform feast_admin_check(p_pass);
+  select family_id into v_family from feast_people where id = p_person;
+  if v_family is null then raise exception '找不到這個人，請重新整理'; end if;
+  delete from feast_people where id = p_person;
+  delete from feast_families where id = v_family
+    and not exists (select 1 from feast_people where family_id = v_family);
+  return jsonb_build_object('ok', true);
+end $$;
+
+create or replace function public.feast_admin_set_captain(p_pass text, p_table int, p_captain text)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+begin
+  perform feast_admin_check(p_pass);
+  update feast_tables set captain = left(btrim(coalesce(p_captain, '')), 30) where no = p_table;
+  if not found then raise exception '桌號不正確'; end if;
+  return jsonb_build_object('ok', true);
+end $$;
+
+create or replace function public.feast_admin_add_table(p_pass text)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare v_no int;
+begin
+  perform feast_admin_check(p_pass);
+  insert into feast_tables (no, captain) select coalesce(max(no), 0) + 1, '' from feast_tables returning no into v_no;
+  return jsonb_build_object('ok', true, 'no', v_no);
+end $$;
+
+grant execute on function public.feast_admin_update_person(text, uuid, text, text, text, text, text, int) to anon, authenticated;
+grant execute on function public.feast_admin_add_person(text, text, text, text, text, text, int) to anon, authenticated;
+grant execute on function public.feast_admin_delete_person(text, uuid) to anon, authenticated;
+grant execute on function public.feast_admin_set_captain(text, int, text) to anon, authenticated;
+grant execute on function public.feast_admin_add_table(text) to anon, authenticated;

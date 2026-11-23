@@ -138,3 +138,27 @@
   .tab { padding: 0.6rem 0.8rem; font-size: 0.92rem; }
   .filters .muted { margin-left: 0; width: 100%; }
 }
+
+/* ===== 編輯 ===== */
+.tb-edit { flex-shrink: 0; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 0.95rem; padding: 0 0.2rem; opacity: 0.55; border-radius: 6px; }
+.tb-edit:hover, .tb-edit:focus-visible { opacity: 1; color: var(--accent-dark); background: var(--accent-soft); outline: none; }
+.row-edit { font: inherit; font-size: 0.82rem; font-weight: 700; color: var(--accent-dark); background: var(--accent-soft); border: 0; border-radius: 999px; padding: 0.2rem 0.8rem; cursor: pointer; white-space: nowrap; }
+.row-edit:hover { background: var(--accent); color: #fff; }
+
+#person-modal, #captain-modal { width: min(480px, 94vw); overflow-y: auto; }
+#person-modal h3, #captain-modal h3 { padding-right: 1.8rem; margin-bottom: 1rem; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+.modal .field select {
+  font: inherit; color: inherit; width: 100%; padding: 0.7rem 0.8rem;
+  border: 1.5px solid var(--line); border-radius: 14px; background: #fffdfa;
+}
+.modal .field select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.field-hint { color: var(--muted); font-size: 0.85rem; font-weight: 400; line-height: 1.5; }
+.field-hint:empty { display: none; }
+#table-hint { color: #c0392b; }
+.btn-danger { background: transparent; color: #c0392b; border-color: #e3a79f; flex: 0 0 auto !important; }
+.btn-danger:hover:not(:disabled) { background: #fdf0ee; border-color: #c0392b; }
+
+@media (max-width: 600px) {
+  .field-row { grid-template-columns: 1fr; }
+}

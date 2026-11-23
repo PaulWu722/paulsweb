@@ -50,6 +50,7 @@
         <p class="muted">拖曳名字即可換桌；拖到「尚未安排」即移出座位。每桌上限 <strong id="cap">10</strong> 人（含桌長）。</p>
       </div>
       <div class="board-actions">
+        <button type="button" class="btn btn-small btn-ghost" id="add-table">＋ 新增一桌</button>
         <button type="button" class="btn btn-small btn-ghost" id="refresh">↻ 重新整理</button>
         <button type="button" class="btn btn-small btn-primary" id="copy-text">複製名單文字</button>
       </div>
@@ -76,6 +77,7 @@
         </div>
         <div class="board-actions">
           <button type="button" class="btn btn-small btn-ghost" id="people-refresh">↻ 重新整理</button>
+          <button type="button" class="btn btn-small btn-ghost" id="add-person">＋ 新增人員</button>
           <button type="button" class="btn btn-small btn-primary" id="people-csv">下載 Excel（CSV）</button>
         </div>
       </div>
@@ -113,6 +115,7 @@
               <th data-sort="created">報名時間</th>
               <th data-sort="code">修改碼</th>
               <th data-sort="note">備註</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody id="people-body"></tbody>
@@ -120,6 +123,47 @@
       </div>
     </section>
   </main>
+
+  <!-- 編輯／新增人員 -->
+  <dialog class="modal" id="person-modal">
+    <form method="dialog"><button class="modal-close" aria-label="關閉">×</button></form>
+    <h3 id="person-title">編輯資料</h3>
+    <form class="form" id="person-form">
+      <label class="field"><span>姓名 <em>*</em></span><input type="text" name="pname" maxlength="30" required></label>
+      <div class="field-row">
+        <label class="field"><span>性別</span>
+          <select name="gender"><option value="">未填</option><option>男</option><option>女</option></select></label>
+        <label class="field"><span>身分</span>
+          <select name="role"><option value="">未填</option><option>聖徒</option><option>福音朋友</option><option>學生</option></select></label>
+      </div>
+      <div class="field-row">
+        <label class="field"><span>小區</span>
+          <select name="area"><option value="">未填</option><option>霧峰</option><option>朝陽</option><option>其他</option></select></label>
+        <label class="field"><span>其他小區名稱</span><input type="text" name="areaOther" maxlength="20" placeholder="選填"></label>
+      </div>
+      <label class="field"><span>桌次</span><select name="table"></select>
+        <small class="field-hint" id="table-hint"></small></label>
+      <label class="field"><span>備註</span><textarea name="note" rows="2" maxlength="200"></textarea></label>
+      <p class="field-hint" id="person-family-hint"></p>
+      <p class="form-error" id="person-error" role="alert"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-danger" id="person-delete" hidden>刪除</button>
+        <button type="submit" class="btn btn-primary" id="person-save">儲存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- 編輯桌長 -->
+  <dialog class="modal" id="captain-modal">
+    <form method="dialog"><button class="modal-close" aria-label="關閉">×</button></form>
+    <h3 id="captain-title">編輯桌長</h3>
+    <form class="form" id="captain-form">
+      <label class="field"><span>桌長姓名</span><input type="text" name="captain" maxlength="30" placeholder="清空表示桌長待定"></label>
+      <p class="field-hint">桌長一定佔一個位子（算在每桌 10 人內）。</p>
+      <p class="form-error" id="captain-error" role="alert"></p>
+      <button type="submit" class="btn btn-primary btn-block">儲存</button>
+    </form>
+  </dialog>
 
   <div class="toast" id="toast" role="status"></div>
 
