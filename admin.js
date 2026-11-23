@@ -11,6 +11,7 @@
   let pass = sessionStorage.getItem(PASS_KEY) || '';
   let data = null;
   let dragging = false;
+  let lastDragEnd = 0;
   let busy = false;
   let sortables = [];
 
@@ -90,6 +91,7 @@
         onStart: () => { dragging = true; document.body.classList.add('is-dragging'); },
         onEnd: (evt) => {
           dragging = false;
+          lastDragEnd = Date.now();
           document.body.classList.remove('is-dragging');
           if (evt.from === evt.to) return;
           move(evt.item.dataset.id, Number(evt.to.dataset.table), evt.item.textContent);
@@ -473,6 +475,62 @@
 
   document.querySelectorAll('dialog').forEach((d) =>
     d.addEventListener('click', (e) => { if (e.target === d) d.close(); }));
+
+
+  // ================= 點名字：選單（取消入座／取消報名／編輯） =================
+  let chipPerson = null; // { id, name, table, area }
+
+  function openChipMenu(chip) {
+    const id = chip.dataset.id;
+    const tableNo = Number(chip.closest('.drop-zone')?.dataset.table) || 0;
+    const m = [...(data?.tables || []).flatMap((t) => t.members), ...(data?.unseated || [])].find((x) => x.id === id);
+    chipPerson = { id, name: m ? m.name : chip.textContent.trim(), table: tableNo, area: m ? m.area : '' };
+    const t = (data?.tables || []).find((x) => x.no === tableNo);
+    $('#chip-title').textContent = chipPerson.name;
+    $('#chip-sub').textContent = [tableNo ? `第 ${tableNo} 桌${t && t.captain ? `（桌長 ${t.captain}）` : ''}` : '尚未安排桌次', chipPerson.area]
+      .filter(Boolean).join('・');
+    $('#chip-unseat').hidden = !tableNo;
+    $('#chip-modal').showModal();
+  }
+
+  $('#view-seats').addEventListener('click', (e) => {
+    const chip = e.target.closest('.name-chip');
+    if (!chip || dragging || Date.now() - lastDragEnd < 300) return;
+    openChipMenu(chip);
+  });
+
+  $('#chip-modal').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn || !chipPerson) return;
+    const p = chipPerson;
+    const modal = $('#chip-modal');
+    if (btn.dataset.act === 'close') return modal.close();
+
+    if (btn.dataset.act === 'unseat') {
+      modal.close();
+      return move(p.id, 0, p.name);
+    }
+
+    if (btn.dataset.act === 'delete') {
+      if (!confirm(`確定要取消「${p.name}」的報名嗎？\n會從名單刪除，無法復原。`)) return;
+      modal.close();
+      const r = await act('adminDeletePerson', { person: p.id });
+      if (!r.ok) { if (!r.out) toast(r.msg, true); return; }
+      toast(`已取消 ${p.name} 的報名`);
+      return load(true);
+    }
+
+    if (btn.dataset.act === 'edit') {
+      const r = await act('adminPeople', {});
+      if (!r.ok) { if (!r.out) toast(r.msg, true); return; }
+      const person = r.res.list.find((x) => x.id === p.id);
+      if (!person) return toast('找不到這個人，請重新整理', true);
+      tablesInfo = data.tables;
+      capacity = data.capacity;
+      modal.close();
+      openPerson(person);
+    }
+  });
 
   // ---------- 初始化 ----------
   $('#demo-banner').hidden = LIVE;

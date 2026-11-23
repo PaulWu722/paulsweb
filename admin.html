@@ -124,6 +124,19 @@
     </section>
   </main>
 
+  <!-- 點名字的選單 -->
+  <dialog class="modal" id="chip-modal">
+    <form method="dialog"><button class="modal-close" aria-label="關閉">×</button></form>
+    <h3 id="chip-title"></h3>
+    <p class="muted" id="chip-sub"></p>
+    <div class="menu">
+      <button type="button" class="menu-item" data-act="edit">✎ 編輯資料</button>
+      <button type="button" class="menu-item" data-act="unseat" id="chip-unseat">↩ 取消入座<small>移到「尚未安排」</small></button>
+      <button type="button" class="menu-item menu-danger" data-act="delete">🗑 取消報名<small>從名單刪除，無法復原</small></button>
+      <button type="button" class="menu-item menu-cancel" data-act="close">取消</button>
+    </div>
+  </dialog>
+
   <!-- 編輯／新增人員 -->
   <dialog class="modal" id="person-modal">
     <form method="dialog"><button class="modal-close" aria-label="關閉">×</button></form>
