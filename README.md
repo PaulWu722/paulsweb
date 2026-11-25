@@ -6,12 +6,9 @@
 | --- | --- | --- |
 | `/` | 入口頁（列出所有網站；從 LINE 開啟會自動轉到活動登記） | `/paulsweb/` |
 | `event/` | 簡易活動登記＋小排福音代禱牆（LINE LIFF） | `/paulsweb/event/` |
-| `aiyan/` | 年終愛筵報名＋桌次管理 | `/paulsweb/aiyan/` |
-| `kaizhan/` | 南三照顧區・開展週配搭回條＋統計 | `/paulsweb/kaizhan/` |
-| `huifang/` | 我的回訪（製作中） | `/paulsweb/huifang/` |
 
 各網站的說明在各自資料夾的 `README.md`。
-所有網站共用同一個 Supabase 專案，資料表各自分開：`event` 用 `events`／`registrations`／`profiles`／`prayer_entries`，`aiyan` 用 `feast_*`，`kaizhan` 用 `kz_responses`。
+`event` 使用 Supabase 專案 `gserdnkovlwfdgcaguqe`，資料表為 `events`／`registrations`／`profiles`／`prayer_entries`。
 
 ## 修改網站
 直接改 `main` 上對應資料夾的檔案，push 後約 1～2 分鐘 GitHub Pages 就會更新。
