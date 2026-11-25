@@ -1,5 +1,7 @@
 # 📋 LINE 簡易活動登記平台
 
+> 本網站位於 `main` 分支的 `event/` 資料夾，網址 `https://paulwu722.github.io/paulsweb/event/`。下文的檔案路徑都是相對於 `event/`。
+
 在 LINE 裡就能 **建立活動 → 分享到群組 → 好友一鍵報名 → 主辦人看名單**。
 
 - LIFF：https://liff.line.me/2012523033-BncNNabf
@@ -31,12 +33,12 @@ gas/Code.gs  （替代方案）Google Apps Script 後端
 ## 部署步驟
 
 ### 1. 前端放上 GitHub Pages
-1. GitHub repo → **Settings → Pages** → Source 選 `Deploy from a branch`，Branch 選要部署的分支 / `root`。
-2. 取得網址，例如 `https://paulwu722.github.io/paulsweb/`。
+1. GitHub repo → **Settings → Pages** → Source 選 `Deploy from a branch`，Branch 選 `main` / `root`。
+2. 取得網址，活動登記在 `https://paulwu722.github.io/paulsweb/event/`。
 
 ### 2. 設定 LIFF
 LINE Developers Console → 你的 LINE Login Channel → **LIFF** → `2012523033-BncNNabf`：
-- **Endpoint URL**：填上一步的 GitHub Pages 網址
+- **Endpoint URL**：`https://paulwu722.github.io/paulsweb/event/`
 - **Size**：Full（建議）
 - **Scope**：勾選 `openid`、`profile`（**`openid` 一定要勾**，後端驗證身分用）
 - **Scan QR**：可不勾
