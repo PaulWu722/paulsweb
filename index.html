@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Paul 的網站</title>
+  <script>
+    // LINE LIFF 的 Endpoint 若還設在網站根目錄，從 LINE 開啟時直接轉到活動登記（保留 ?liff.state 等參數）
+    (function () {
+      var q = location.search, ua = navigator.userAgent;
+      if (/[?&](liff\.state|liff\.referrer|event|pray)=?/.test(q) || / Line\//i.test(ua)) {
+        location.replace('event/' + q + location.hash);
+      }
+    })();
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif; background: #f3f5f4; color: #111827; }
+    main { max-width: 560px; margin: 0 auto; padding: 36px 18px 48px; }
+    h1 { font-size: 26px; margin: 0 0 4px; }
+    p.lead { margin: 0 0 24px; color: #6b7280; }
+    a.site { display: flex; align-items: center; gap: 14px; padding: 16px; margin-bottom: 12px; border-radius: 18px; background: #fff; color: inherit; text-decoration: none; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.05); }
+    a.site:active { transform: scale(.99); }
+    .icon { width: 52px; height: 52px; flex-shrink: 0; border-radius: 14px; display: grid; place-items: center; font-size: 26px; }
+    .site b { display: block; font-size: 17px; }
+    .site small { display: block; color: #6b7280; font-size: 13px; margin-top: 2px; }
+    .site .go { margin-left: auto; color: #c4c9d4; font-size: 22px; }
+    .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 99px; background: #fff4e0; color: #b45309; margin-left: 6px; vertical-align: 2px; }
+    .sub { display: flex; gap: 8px; margin: -4px 0 14px 82px; flex-wrap: wrap; }
+    .sub a { font-size: 13px; color: #04913e; text-decoration: none; padding: 4px 10px; border-radius: 99px; background: #e9f9ef; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Paul 的網站</h1>
+    <p class="lead">召會服事用的小工具</p>
+
+    <a class="site" href="event/">
+      <span class="icon" style="background:#e9f9ef">📋</span>
+      <span><b>簡易活動登記</b><small>LINE 活動報名、接龍、小排福音代禱牆</small></span>
+      <span class="go">›</span>
+    </a>
+    <div class="sub"><a href="event/#/pray">🙏 小排福音代禱牆</a></div>
+
+    <a class="site" href="aiyan/">
+      <span class="icon" style="background:#fdecec">🍱</span>
+      <span><b>年終愛筵報名</b><small>線上報名、選桌</small></span>
+      <span class="go">›</span>
+    </a>
+    <div class="sub"><a href="aiyan/admin.html">🔒 桌次管理</a></div>
+
+    <a class="site" href="kaizhan/">
+      <span class="icon" style="background:#e8f0fb">🌱</span>
+      <span><b>南三照顧區・開展週配搭回條</b><small>配搭回條問卷</small></span>
+      <span class="go">›</span>
+    </a>
+    <div class="sub"><a href="kaizhan/results.html">📊 統計</a></div>
+
+    <a class="site" href="huifang/">
+      <span class="icon" style="background:#f3ecfb">🤝</span>
+      <span><b>我的回訪<span class="tag">製作中</span></b><small>回訪紀錄</small></span>
+      <span class="go">›</span>
+    </a>
+  </main>
+</body>
+</html>
