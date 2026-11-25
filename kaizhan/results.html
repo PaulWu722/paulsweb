@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>開展週回條・統計</title>
+<style>
+  body{margin:0;font-family:-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;background:#fbf6f2;color:#333}
+  .wrap{max-width:900px;margin:0 auto;padding:16px}
+  h1{color:#c4552b;font-size:1.3rem}
+  .card{background:#fff;border-radius:12px;padding:14px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:.9rem}
+  th,td{border:1px solid #e8d9cf;padding:6px 8px;text-align:center;white-space:nowrap}
+  th{background:#f6e6dc}
+  td.l{text-align:left;white-space:normal}
+  input,button{font-size:16px;padding:10px;border-radius:8px;border:1px solid #ccc}
+  button{background:#c4552b;color:#fff;border:0;font-weight:700}
+  .big{font-size:1.6rem;font-weight:700;color:#c4552b}
+  .stats{display:flex;gap:20px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>南三開展週・回條統計</h1>
+  <div class="card" id="login">
+    <input type="password" id="code" placeholder="負責人密碼"> <button id="go">查看</button>
+    <span id="msg" style="color:#b00020"></span>
+  </div>
+  <div id="out" style="display:none">
+    <div class="card stats" id="stats"></div>
+    <div class="card"><b>各時段人數</b><table id="slotTbl"></table></div>
+    <div class="card"><b>所有回條</b>　<button id="csv" style="padding:6px 10px">下載 CSV</button><table id="list"></table></div>
+  </div>
+</div>
+<script>
+const SB_URL = "https://gserdnkovlwfdgcaguqe.supabase.co";
+const SB_KEY = "sb_publishable_OkPLiqg_-Jnu1ywt8j-o0A_R_BFyIZN";
+const SLOTS = [["1126_noon","11/26 中午"],["1126_pm","11/26 下午"],["1127_noon","11/27 中午"],["1127_pm","11/27 下午"],["1128_noon","11/28 中午"],["1128_pm","11/28 下午"]];
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let rows = [];
+async function load() {
+  const code = $("code").value; $("msg").textContent = "";
+  const r = await fetch(SB_URL + "/rest/v1/rpc/kz_get_responses", { method: "POST",
+    headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_code: code }) });
+  if (!r.ok) { $("msg").textContent = " 密碼錯誤"; return; }
+  rows = await r.json(); localStorage.setItem("kzcode", code); render();
+}
+function render() {
+  $("login").style.display = "none"; $("out").style.display = "block";
+  const attend = rows.filter(r => r.attend).length;
+  const friends = rows.reduce((a, r) => a + (r.bring_friends ? (r.friend_count || 0) : 0), 0);
+  $("stats").innerHTML = `<div>回條數<div class="big">${rows.length}</div></div><div>參加福音聚會<div class="big">${attend}</div></div><div>預計帶福音朋友<div class="big">${friends}</div></div>`;
+  $("slotTbl").innerHTML = "<tr><th>時段</th><th>人數</th><th class='l'>名單</th></tr>" + SLOTS.map(([k, l]) => {
+    const p = rows.filter(r => (r.slots || []).includes(k));
+    return `<tr><td>${l}</td><td>${p.length}</td><td class="l">${p.map(r => esc(r.name)).join("、")}</td></tr>`; }).join("");
+  $("list").innerHTML = "<tr><th>時間</th><th>姓名</th><th>小排</th><th>開展時段</th><th>參加聚會</th><th>帶朋友</th><th class='l'>禱告名單</th></tr>" +
+    rows.map(r => `<tr><td>${new Date(r.created_at).toLocaleString("zh-TW",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</td><td>${esc(r.name)}</td><td>${esc(r.group_name)}</td><td class="l">${(r.slots||[]).map(s => (SLOTS.find(x => x[0]===s)||[,s])[1]).join("、")}</td><td>${r.attend?"✓":""}</td><td>${r.bring_friends?(r.friend_count||"✓")+" 位":""}</td><td class="l">${esc(r.pray_names)}</td></tr>`).join("");
+}
+$("go").onclick = load;
+$("code").addEventListener("keydown", e => { if (e.key === "Enter") load(); });
+$("csv").onclick = () => {
+  const head = ["填寫時間","姓名","小排",...SLOTS.map(s => s[1]),"參加福音聚會","帶福音朋友人數","禱告名單"];
+  const q = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+  const lines = [head.map(q).join(",")].concat(rows.map(r => [new Date(r.created_at).toLocaleString("zh-TW"), r.name, r.group_name, ...SLOTS.map(s => (r.slots||[]).includes(s[0]) ? "V" : ""), r.attend ? "V" : "", r.bring_friends ? (r.friend_count || "") : "", r.pray_names].map(q).join(",")));
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + lines.join("\n")], { type: "text/csv" }));
+  a.download = "開展週回條.csv"; a.click();
+};
+const saved = localStorage.getItem("kzcode"); if (saved) { $("code").value = saved; load(); }
+</script>
+</body>
+</html>
