@@ -346,53 +346,36 @@
   };
   const ROLL_MAX = 60; // Flex 訊息有大小上限，太多人時只列前面
 
-  /** 接龍圖卡：標題、時間地點截止、目前人數、編號名單、「我也要登記」 */
+  /** 接龍圖卡：跟發布時的活動圖卡一模一樣（圖片、標題、時間地點、說明），下方再加上目前人數與編號名單 */
   function buildRollFlex(ev, list) {
     const t = themeOf(ev.theme);
-    const url = shareUrl(ev.id);
     const qs = ev.questions || [];
-    const kv = (k, v, action) => ({
-      type: 'box', layout: 'baseline', spacing: 'md', ...(action ? { action } : {}),
-      contents: [
-        { type: 'text', text: k, size: 'sm', color: '#6b7280', flex: 0 },
-        { type: 'text', text: v, size: 'sm', color: action ? t.c1 : '#1f2937', wrap: true, flex: 1, ...(action ? { decoration: 'underline' } : {}) },
-      ],
-    });
-    const info = [kv('時間', fmtRange(ev.startAt, ev.endAt) || '未定')];
-    if (ev.location) info.push(kv('地點', `${ev.location} 📍`, { type: 'uri', label: '地圖', uri: ev.mapUrl || mapsSearch(ev.location) }));
-    if (ev.deadlineAt) info.push(kv('截止', fmtDT(ev.deadlineAt)));
+    const card = buildFlex(ev);
     const cap = Number(ev.capacity) || 0;
+    const st = statusOf(ev);
+    const open = st.key === 'open';
     const shown = list.slice(0, ROLL_MAX);
     const rows = shown.map((r, i) => ({
       type: 'box', layout: 'baseline', spacing: 'md', contents: [
-        { type: 'text', text: `${i + 1}.`, size: 'md', color: t.c1, weight: 'bold', flex: 0, align: 'end' },
-        { type: 'text', text: lineText(r, qs), size: 'md', color: '#1f2937', wrap: true, flex: 1 },
+        { type: 'text', text: `${i + 1}.`, size: 'sm', color: t.c1, weight: 'bold', flex: 0 },
+        { type: 'text', text: lineText(r, qs), size: 'sm', color: '#1f2937', wrap: true, flex: 1 },
       ],
     }));
-    if (list.length > shown.length) rows.push({ type: 'text', text: `…還有 ${list.length - shown.length} 位，點下方按鈕看完整名單`, size: 'sm', color: '#6b7280', wrap: true });
+    if (list.length > shown.length) rows.push({ type: 'text', text: `…還有 ${list.length - shown.length} 位，點下方按鈕看完整名單`, size: 'xs', color: '#6b7280', wrap: true });
     if (!rows.length) rows.push({ type: 'text', text: '還沒有人登記', size: 'sm', color: '#6b7280' });
-    const st = statusOf(ev);
-    const open = st.key === 'open';
-    return {
-      type: 'flex',
-      altText: `📋 ${ev.title}｜目前 ${ev.total} 人${cap ? ` / ${cap}` : ''}`.slice(0, 400),
-      contents: {
-        type: 'bubble', size: 'mega',
-        body: { type: 'box', layout: 'vertical', backgroundColor: tint(t.c1, 0.94), paddingAll: '20px', spacing: 'sm', contents: [
-          { type: 'text', text: ev.title, size: 'xl', weight: 'bold', color: '#1f2937', wrap: true },
-          { type: 'box', layout: 'vertical', spacing: 'xs', margin: 'md', contents: info },
-          { type: 'text', text: `目前 ${ev.total} 人${cap ? ` / 名額 ${cap} 人` : ''}${open ? '' : `（${st.text}）`}`, size: 'sm', color: '#6b7280', margin: 'lg' },
-          { type: 'separator', margin: 'lg', color: tint(t.c1, 0.75) },
-          { type: 'box', layout: 'vertical', spacing: 'sm', margin: 'lg', contents: rows },
-        ] },
-        footer: { type: 'box', layout: 'horizontal', spacing: 'md', backgroundColor: tint(t.c1, 0.94), paddingAll: '16px', contents: [
-          { type: 'box', layout: 'vertical', width: '5px', backgroundColor: t.c2, cornerRadius: '3px', contents: [{ type: 'filler' }] },
-          { type: 'button', style: 'primary', color: t.c1, height: 'md', flex: 1,
-            action: { type: 'uri', label: open ? (list.length ? '我也要登記' : (ev.buttonText || '我要登記')).slice(0, 20) : '查看活動', uri: url } },
-        ] },
-        styles: { footer: { separator: false } },
-      },
-    };
+    const roll = { type: 'box', layout: 'vertical', paddingAll: '18px', paddingTop: '14px', backgroundColor: tint(t.c1, 0.94), spacing: 'sm', contents: [
+      { type: 'box', layout: 'baseline', contents: [
+        { type: 'text', text: '📋 接龍名單', size: 'sm', weight: 'bold', color: t.c1, flex: 1 },
+        { type: 'text', text: `${ev.total} 人${cap ? ` / ${cap}` : ''}${open ? '' : `・${st.text}`}`, size: 'sm', weight: 'bold', color: '#6b7280', flex: 0 },
+      ] },
+      { type: 'separator', margin: 'sm', color: tint(t.c1, 0.75) },
+      { type: 'box', layout: 'vertical', spacing: 'xs', margin: 'md', contents: rows },
+    ] };
+    card.contents.body.contents.push(roll);
+    const btn = card.contents.footer.contents[0];
+    btn.action.label = open ? (list.length ? '我也要登記' : (ev.buttonText || '我要登記')).slice(0, 20) : '查看活動';
+    card.altText = `📋 ${ev.title}｜目前 ${ev.total} 人${cap ? ` / ${cap}` : ''}`.slice(0, 400);
+    return card;
   }
 
   /** 把訊息貼到「開啟這個頁面的聊天室」；不在聊天室裡就改用分享選單 */
