@@ -359,6 +359,16 @@ fieldset:disabled { opacity: .55; }
 .toggle-chips button { height: 40px; padding: 0 16px; border: 0; border-radius: 99px; background: #f1f3f2; font: inherit; font-size: 14px; font-weight: 700; color: var(--ink-2); cursor: pointer; }
 .toggle-chips button.on { background: var(--green); color: #fff; }
 .toggle-chips button:disabled { opacity: .45; }
+.multi-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.multi-chips label { position: relative; cursor: pointer; }
+.multi-chips input { position: absolute; opacity: 0; pointer-events: none; }
+.multi-chips span { display: inline-flex; align-items: center; gap: 6px; min-height: 42px; padding: 8px 16px; border-radius: 99px; background: #f1f3f2; border: 1.5px solid transparent; font-size: 15px; font-weight: 700; color: var(--ink-2); }
+.multi-chips span::before { content: ""; width: 16px; height: 16px; border-radius: 5px; border: 2px solid #b9c2bd; background: #fff; flex-shrink: 0; }
+.multi-chips input:checked + span { background: var(--green-50); border-color: var(--green); color: var(--green-700); }
+.multi-chips input:checked + span::before { border-color: var(--green); background: var(--green) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/12px no-repeat; }
+.multi-chips input:focus-visible + span { outline: 2px solid var(--green); outline-offset: 2px; }
+fieldset:disabled .multi-chips span { opacity: .6; }
+.q-switch { display: flex; flex-wrap: wrap; gap: 0 14px; }
 
 /* 圖片 */
 .img-preview { position: relative; border-radius: var(--r-md); overflow: hidden; aspect-ratio: 20 / 13; background: #eee; }

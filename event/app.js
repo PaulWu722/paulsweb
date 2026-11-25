@@ -29,6 +29,8 @@
     { id: 'companions', chip: '同行人數', label: '同行人數', type: 'companions' },
     { id: 'diet', chip: '飲食需求', label: '飲食需求', type: 'select', options: ['葷食', '素食', '蛋奶素'] },
   ];
+  const Q_TYPES = { text: '文字', select: '下拉', multi: '複選', companions: '人數' };
+  const splitMulti = (v) => String(v || '').split('、').map((x) => x.trim()).filter(Boolean);
   const REMINDERS = [{ id: '7d', label: '前 7 天' }, { id: '24h', label: '前 24 小時' }, { id: '1h', label: '前 1 小時' }];
   // 示範模式用（正式名單在 supabase/functions/api 的 PRAY_GROUPS）
   const DEMO_GROUPS = ['北溝社區排', '德福排', '讀經小排', '霧峰姊妹排', '兒童排', '青職排', '七靈社區排', '青少年排', '草湖亞洲排',
@@ -190,6 +192,7 @@
           const v = String(d.reg.answers?.[q.id] ?? '').trim();
           if (q.type === 'companions') { const n = Math.min(10, Math.max(0, Math.floor(+v || 0))); count = 1 + n; answers[q.id] = String(n); }
           else if (q.type === 'select') { if (!v) throw new Error(`請選擇「${q.label}」`); answers[q.id] = v; }
+          else if (q.type === 'multi') { const pick = splitMulti(v); if (!pick.length) throw new Error(`請至少勾選一項「${q.label}」`); answers[q.id] = (q.options || []).filter((o) => pick.includes(o)).join('、'); }
           else if (v) answers[q.id] = v;
         }
         const old = active(d.id).find((r) => r.userId === me.userId);
@@ -735,12 +738,13 @@
         ${d.questions.map((q, i) => `
           <div class="q" data-i="${i}">
             <div class="q-head">
-              <span class="q-type">${q.type === 'select' ? '下拉' : q.type === 'companions' ? '人數' : '文字'}</span>
+              <span class="q-type">${Q_TYPES[q.type] || '文字'}</span>
               <input class="q-label" value="${esc(q.label)}" maxlength="30" placeholder="輸入問題">
               <button type="button" class="q-del" aria-label="刪除問題">${ICON.trash}</button>
             </div>
-            ${q.type === 'select' ? `<input class="q-opts" value="${esc((q.options || []).join('、'))}" placeholder="選項，用頓號「、」分隔">` : ''}
-            ${q.type === 'text' ? `<button type="button" class="link" data-to-select>改成下拉選單</button>` : ''}
+            ${q.type === 'select' || q.type === 'multi' ? `<input class="q-opts" value="${esc((q.options || []).join('、'))}" placeholder="選項，用頓號「、」分隔">` : ''}
+            ${q.type !== 'companions' ? `<div class="q-switch">${['text', 'select', 'multi'].filter((t) => t !== q.type).map((t) => `<button type="button" class="link" data-to="${t}">改成${{ text: '文字回答', select: '下拉單選', multi: '複選（可勾多個）' }[t]}</button>`).join('')}</div>` : ''}
+            ${q.type === 'multi' ? '<p class="hint">登記者可以勾選一個以上的選項。</p>' : ''}
             ${q.type === 'companions' ? '<p class="hint">登記者可選 0～10 位同行者，會一起算進人數上限。</p>' : ''}
           </div>`).join('')}
         <div class="preset-chips">
@@ -765,8 +769,12 @@
         const opts = el.querySelector('.q-opts');
         if (opts) opts.oninput = (e) => { q.options = e.target.value.split(/[、,，\n]/).map((s) => s.trim()).filter(Boolean); persist(); };
         el.querySelector('.q-del').onclick = () => { d.questions.splice(i, 1); renderQuestions(); persist(); };
-        const ts = el.querySelector('[data-to-select]');
-        if (ts) ts.onclick = () => { q.type = 'select'; q.options = []; renderQuestions(); persist(); box.querySelector(`[data-i="${i}"] .q-opts`)?.focus(); };
+        el.querySelectorAll('[data-to]').forEach((b) => b.onclick = () => {
+          q.type = b.dataset.to;
+          if (q.type === 'text') delete q.options; else q.options = q.options || [];
+          renderQuestions(); persist();
+          const o = box.querySelector(`[data-i="${i}"] .q-opts`); if (o && !o.value) o.focus();
+        });
       });
     };
 
@@ -799,7 +807,7 @@
       if (data.deadlineAt && data.deadlineAt > (data.endAt || data.startAt)) return bad('登記截止不能晚於活動時間');
       if (data.mapUrl && !/^https:\/\//.test(data.mapUrl)) return bad('地圖位置需為 https:// 開頭的網址', 'mapUrl');
       if (data.imageUrl && !/^(https:\/\/|data:)/.test(data.imageUrl)) return bad('圖片網址需為 https:// 開頭', 'imageUrl');
-      const noOpt = data.questions.find((q) => q.type === 'select' && !(q.options || []).length);
+      const noOpt = data.questions.find((q) => (q.type === 'select' || q.type === 'multi') && !(q.options || []).length);
       if (noOpt) return bad(`「${noOpt.label}」至少要有一個選項`);
 
       busy(btn, true, editing ? '儲存中…' : '建立中…');
@@ -871,6 +879,11 @@
   function questionInput(q, value) {
     if (q.type === 'select') {
       return field(esc(q.label), `<div class="select"><select name="q_${esc(q.id)}"><option value="">請選擇</option>${(q.options || []).map((o) => `<option ${o === value ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></div>`);
+    }
+    if (q.type === 'multi') {
+      const on = splitMulti(value);
+      return field(esc(q.label), `<div class="multi-chips">${(q.options || []).map((o) => `
+        <label><input type="checkbox" name="q_${esc(q.id)}" value="${esc(o)}" ${on.includes(o) ? 'checked' : ''}><span>${esc(o)}</span></label>`).join('')}</div>`, { hint: '可複選' });
     }
     if (q.type === 'companions') {
       const v = Number(value) || 0;
@@ -968,11 +981,11 @@
     if (submit) submit.onclick = async () => {
       const fd = new FormData(rf);
       const reg = { name: String(fd.get('name') || '').trim(), phone: String(fd.get('phone') || '').trim(), answers: {} };
-      for (const q of qs) reg.answers[q.id] = String(fd.get('q_' + q.id) ?? '').trim();
+      for (const q of qs) reg.answers[q.id] = q.type === 'multi' ? fd.getAll('q_' + q.id).map(String).join('、') : String(fd.get('q_' + q.id) ?? '').trim();
       if (!reg.name) return toast('請填寫姓名');
       if (askPhone && !reg.phone) return toast('請填寫電話');
-      const miss = qs.find((q) => q.type === 'select' && !reg.answers[q.id]);
-      if (miss) return toast(`請選擇「${miss.label}」`);
+      const miss = qs.find((q) => (q.type === 'select' || q.type === 'multi') && !reg.answers[q.id]);
+      if (miss) return toast(miss.type === 'multi' ? `請至少勾選一項「${miss.label}」` : `請選擇「${miss.label}」`);
       busy(submit, true, '送出中…');
       const autoRoll = document.getElementById('auto-roll')?.checked;
       localStorage.setItem('auto-roll', autoRoll ? '1' : '0');

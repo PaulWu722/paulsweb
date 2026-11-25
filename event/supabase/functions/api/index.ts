@@ -15,7 +15,7 @@ const CORS = {
 
 type User = { userId: string; displayName: string };
 type Row = Record<string, unknown>;
-type Question = { id: string; label: string; type: 'text' | 'select' | 'companions'; options?: string[] };
+type Question = { id: string; label: string; type: 'text' | 'select' | 'multi' | 'companions'; options?: string[] };
 
 class UserError extends Error {}
 
@@ -90,10 +90,10 @@ function cleanQuestions(src: unknown): Question[] {
     const id = String(q?.id ?? '').slice(0, 20);
     const type = q?.type;
     const label = clip(q?.label, 30);
-    if (!/^[\w-]+$/.test(id) || seen.has(id) || !label || !['text', 'select', 'companions'].includes(type)) continue;
+    if (!/^[\w-]+$/.test(id) || seen.has(id) || !label || !['text', 'select', 'multi', 'companions'].includes(type)) continue;
     if (type === 'companions' && out.some((x) => x.type === 'companions')) continue;
     const item: Question = { id, label, type };
-    if (type === 'select') {
+    if (type === 'select' || type === 'multi') {
       item.options = [...new Set((Array.isArray(q.options) ? q.options : []).map((o: unknown) => clip(o, 30)).filter(Boolean))]
         .slice(0, 30) as string[];
       if (!item.options.length) throw new UserError(`「${label}」至少要有一個選項`);
@@ -213,6 +213,15 @@ const actions: Record<string, (b: Row, u: User) => Promise<unknown>> = {
     const answers: Record<string, string> = {};
     let count = 1;
     for (const q of (ev.questions as Question[]) ?? []) {
+      if (q.type === 'multi') {
+        const raw = Array.isArray(src[q.id]) ? (src[q.id] as unknown[]).map(String) : String(src[q.id] ?? '').split('、');
+        const pick = new Set(raw.map((x) => x.trim()).filter(Boolean));
+        const chosen = (q.options ?? []).filter((o) => pick.has(o));
+        if (!chosen.length) throw new UserError(`請至少勾選一項「${q.label}」`);
+        if (chosen.length < pick.size) throw new UserError(`「${q.label}」的選項不正確`);
+        answers[q.id] = chosen.join('、');
+        continue;
+      }
       const v = clip(src[q.id], 100);
       if (q.type === 'companions') {
         const n = Math.min(MAX_COMPANIONS, Math.max(0, Math.floor(Number(v) || 0)));
